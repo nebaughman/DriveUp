@@ -5,8 +5,8 @@ import com.google.api.services.drive.DriveScopes
 import name.neuhalfen.projects.crypto.bouncycastle.openpgp.BouncyGPG
 import name.neuhalfen.projects.crypto.bouncycastle.openpgp.keys.keyrings.KeyringConfig
 import name.neuhalfen.projects.crypto.bouncycastle.openpgp.keys.keyrings.KeyringConfigs
-import net.nyhm.gdpush.GDriver
-import net.nyhm.gdpush.UploadSpecBuilder
+import net.nyhm.gdriver.GDriver
+import net.nyhm.gdriver.UploadSpecBuilder
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.util.io.Streams
 import java.io.*
