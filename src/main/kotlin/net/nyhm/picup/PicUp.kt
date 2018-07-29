@@ -2,11 +2,18 @@ package net.nyhm.picup
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.google.api.services.drive.DriveScopes
+import name.neuhalfen.projects.crypto.bouncycastle.openpgp.BouncyGPG
+import name.neuhalfen.projects.crypto.bouncycastle.openpgp.keys.keyrings.KeyringConfig
+import name.neuhalfen.projects.crypto.bouncycastle.openpgp.keys.keyrings.KeyringConfigs
 import net.nyhm.gdpush.GDriver
-import java.io.File
-import java.io.FileFilter
+import net.nyhm.gdpush.UploadSpecBuilder
+import org.bouncycastle.jce.provider.BouncyCastleProvider
+import org.bouncycastle.util.io.Streams
+import java.io.*
 import java.nio.file.FileSystems
 import java.nio.file.Files
+import java.nio.file.Paths
+import java.security.Security
 import java.util.*
 
 class PicUp {
@@ -14,10 +21,12 @@ class PicUp {
 
     private const val UPLOAD_DIR = "PicsBackup"
 
+    private const val GPG_MIME_TYPE = "application/pgp-encrypted"
+
     private val sourceDir = FileSystems.getDefault().getPath(
         System.getProperty("user.home"),
-        "pics",
-        "Pixel"
+        "pics", "Pixel"
+        //"tmp", "picup-test"
     )
 
     @JvmStatic
@@ -25,7 +34,7 @@ class PicUp {
 
     fun execute() {
 
-      val localFiles = findLocalFiles()
+      val encryptor = Encryptor // force initialization
 
       val driver = GDriver(
           "NEB Pics Backup",
@@ -36,20 +45,21 @@ class PicUp {
 
       val dir = driver.findDirectory(UPLOAD_DIR)
 
-      val dirId = dir?.id ?: driver.createDirectory(UPLOAD_DIR)
-      println("Created dirId: $dirId")
+      val parentId = dir?.id ?: driver.createDirectory(UPLOAD_DIR)
+      if (parentId.isBlank()) throw IllegalStateException("Could not obtain parent directory ID")
+      //println("parentId: $parentId")
 
-      val remoteFiles = driver.remoteFiles(dirId).map { it.name }
-
-      if (remoteFiles.isEmpty()) {
-        println("No remote files")
-      } else {
-        //remoteFiles.forEach { println("> $it") }
+      val remoteFiles = driver.remoteFiles(parentId).map { it.name }.also {
+        val count = if (it.isEmpty()) "No" else it.size.toString()
+        val noun = if (it.size == 1) "file" else "files"
+        println("$count remote $noun")
       }
 
-      localFiles
+      findLocalFiles()
           .filter { !remoteFiles.contains(it.name + ".gpg") }
-          .forEach { upload(it) }
+          .take(10) // for testing
+          .also { println("${it.size} file${if (it.size > 1) "s" else ""} to upload...") }
+          .forEach { upload(driver, encryptor, parentId, it) }
     }
 
     private fun findLocalFiles(): MutableSet<File> {
@@ -57,15 +67,60 @@ class PicUp {
       val files = sourceDir.toFile().listFiles(FileFilter {
         it.isFile && it.name.endsWith(".jpg", true)
       })
-      return TreeSet(files.toList().take(5))
+      return TreeSet(files.toList())
     }
 
-    private fun upload(file: File) {
+    private fun upload(driver: GDriver, encryptor: Encryptor, parentId: String, file: File) {
       val remoteName = file.name + ".gpg"
-      println("^ $remoteName")
-      // TODO: encrypt and upload
+      println("^ ${file.name}(.gpg)")
+      driver.upload(UploadSpecBuilder()
+          .mimeType(GPG_MIME_TYPE)
+          .name(remoteName)
+          .parentId(parentId)
+          .source(encryptor.encrypt(file))
+          .build()
+      )
+    }
+  }
+}
+
+object Encryptor {
+
+  private const val PUB_KEY_FILE = "/public_key.asc"
+  private const val RECIPIENT = "neb@nebaughman.com"
+
+  private val keyringConfig: KeyringConfig
+
+  init {
+    if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
+      Security.addProvider(BouncyCastleProvider())
     }
 
+    val publicKey = Files.readAllBytes(
+        Paths.get(Encryptor::class.java.getResource(PUB_KEY_FILE).toURI())
+    )
+
+    val keyring = KeyringConfigs.forGpgExportedKeys { keyID -> null }
+    keyring.addPublicKey(publicKey)
+    keyringConfig = keyring
+  }
+
+  fun encrypt(source: File): InputStream {
+    // TODO: use PipedInputStream and PipedOutputStream
+    //val dest = File("${source.name}.gpg")
+    //val result = FileOutputStream(dest)
+    val result = ByteArrayOutputStream()
+    BouncyGPG
+        .encryptToStream()
+        .withConfig(keyringConfig)
+        .withStrongAlgorithms()
+        .toRecipient(RECIPIENT)
+        .andDoNotSign()
+        .binaryOutput()
+        .andWriteTo(result).use { output ->
+          Streams.pipeAll(source.inputStream(), output)
+        }
+    return ByteArrayInputStream(result.toByteArray())
   }
 }
 
