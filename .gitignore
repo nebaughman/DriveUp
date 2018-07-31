@@ -3,4 +3,5 @@
 /build/
 /out/
 /credentials/
-/src/main/resources/public_key.asc
+public_key.asc
+client_secret.json
