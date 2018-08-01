@@ -6,21 +6,35 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
 
-class Uploader(
-    private val sourceDir: Path,
+class Uploader private constructor(
+    private val localFiles: Set<File>,
     private val remote: Remote
 ) {
-  private val localFiles: MutableSet<File> by lazy {
-    if (!Files.exists(sourceDir)) throw IllegalStateException("Source dir does not exist: $sourceDir")
-    val files = sourceDir.toFile().listFiles(FileFilter {
-      it.isFile && it.name.endsWith(".jpg", true)
-    })
-    TreeSet(files.toList())
+
+  companion object {
+    fun create(sourceDir: Path, remote: Remote): Uploader {
+      if (!Files.exists(sourceDir)) throw IllegalArgumentException("Source dir does not exist: $sourceDir")
+      val files = sourceDir.toFile().listFiles(FileFilter {
+        it.isFile && it.name.endsWith(".jpg", true)
+      })
+      val localFiles = TreeSet(files.toList())
+      return Uploader(localFiles, remote)
+    }
   }
 
-  fun localCount() = localFiles.size
+  val localBytes by lazy { localFiles.sumByLong { it.length() } }
 
-  fun uploadCount() = localFiles.count { !remote.hasFile(it) }
+  val localCount = localFiles.size
+
+  fun uploadStats(): UploadStats {
+    var count = 0
+    var bytes = 0L
+    localFiles
+        .filter { !remote.hasFile(it) }
+        .also { count = it.size }
+        .forEach { bytes += it.length() }
+    return UploadStats(count, bytes)
+  }
 
   fun upload(limit: Int = 0) {
     var files = localFiles.filter { !remote.hasFile(it) }
@@ -29,3 +43,8 @@ class Uploader(
     files.forEach { remote.upload(it) }
   }
 }
+
+data class UploadStats(
+    val count: Int,
+    val bytes: Long
+)

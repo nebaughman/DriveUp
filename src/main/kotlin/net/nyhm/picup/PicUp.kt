@@ -94,11 +94,14 @@ class Cli: CliktCommand() {
         //"tmp", "picup-test"
     )
 
-    val uploader = Uploader(sourceDir, remote)
+    val uploader = Uploader.create(sourceDir, remote)
 
-    println("Local files: ${uploader.localCount()}")
+    val mb = uploader.localBytes / 1024 / 1024
+    val up = uploader.uploadStats()
+
+    println("Local files: ${uploader.localCount} (${mb} MB)")
     println("Remote files: ${remote.fileCount()}")
-    println("Files to upload: ${uploader.uploadCount()}")
+    println("Files to upload: ${up.count}")
 
     uploader.upload(2)
   }
@@ -119,4 +122,13 @@ class Stopwatch(val name: String, val bytes: Long) {
     return "$name: ${bytes}b / ${format(sec)}s = ${format(mbps)} Mbps"
   }
   private fun format(num: Number) = "%.1f".format(num)
+}
+
+// https://stackoverflow.com/a/37537228/6004010
+inline fun <T> Iterable<T>.sumByLong(selector: (T) -> Long): Long {
+  var sum = 0L
+  for (element in this) {
+    sum += selector(element)
+  }
+  return sum
 }
