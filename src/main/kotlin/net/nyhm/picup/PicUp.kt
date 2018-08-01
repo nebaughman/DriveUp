@@ -5,132 +5,14 @@ import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.file
 import com.google.api.services.drive.DriveScopes
-import name.neuhalfen.projects.crypto.bouncycastle.openpgp.BouncyGPG
-import name.neuhalfen.projects.crypto.bouncycastle.openpgp.keys.keyrings.KeyringConfig
-import name.neuhalfen.projects.crypto.bouncycastle.openpgp.keys.keyrings.KeyringConfigs
 import net.nyhm.gdriver.GDriver
-import net.nyhm.gdriver.UploadSpecBuilder
-import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.bouncycastle.util.io.Streams
-import java.io.*
+import java.io.File
 import java.nio.file.FileSystems
-import java.nio.file.Files
-import java.nio.file.Path
-import java.security.Security
-import java.util.*
 
-private const val GPG_MIME_TYPE = "application/pgp-encrypted"
-
-class PicUp(
-    private val sourceDir: Path,
-    private val remote: Remote
-) {
-
-  private val localFiles: MutableSet<File> by lazy {
-    if (!Files.exists(sourceDir)) throw IllegalStateException("Source dir does not exist: $sourceDir")
-    val files = sourceDir.toFile().listFiles(FileFilter {
-      it.isFile && it.name.endsWith(".jpg", true)
-    })
-    TreeSet(files.toList())
-  }
-
-  fun localCount() = localFiles.size
-
-  fun uploadCount() = localFiles.count { !remote.hasFile(it) }
-
-  fun upload(limit: Int = 0) {
-    var files = localFiles.filter { !remote.hasFile(it) }
-    if (limit > 0) files = files.take(limit)
-    println("Uploading ${files.size} file${if (files.size > 1) "s" else ""}...")
-    files.forEach { remote.upload(it) }
-  }
-
+class PicUp {
   companion object {
     @JvmStatic
     fun main(args: Array<String>) = Cli().main(args)
-  }
-}
-
-class Remote private constructor(
-    private val driver: GDriver,
-    private val encryptor: Encryptor,
-    private val parentId: String,
-    private val remoteFiles: MutableSet<String>
-) {
-
-  companion object {
-    fun create(driver: GDriver, encryptor: Encryptor, uploadRoot: String): Remote {
-      val dir = driver.findDirectory(uploadRoot)
-      val parentId = dir?.id ?: driver.createDirectory(uploadRoot)
-      if (parentId.isBlank()) throw IllegalStateException("Could not obtain parent directory ID")
-      //println("parentId: $parentId")
-
-      // TODO: check for duplicates?
-      val remoteFiles = driver.remoteFiles(parentId).map { it.name }.toMutableSet()
-
-      return Remote(driver, encryptor, parentId, remoteFiles)
-    }
-  }
-
-  fun remoteName(file: File) = file.name + ".gpg"
-
-  fun fileCount() = remoteFiles.size
-
-  fun hasFile(file: File) = remoteFiles.contains(remoteName(file))
-
-  fun upload(file: File) {
-    val remoteName = remoteName(file)
-    val time = Stopwatch(file.name, file.length())
-    driver.upload(UploadSpecBuilder()
-        .mimeType(GPG_MIME_TYPE)
-        .name(remoteName)
-        .parentId(parentId)
-        .source(encryptor.encrypt(file))
-        .build()
-    )
-    remoteFiles.add(remoteName)
-    println(time.report())
-  }
-}
-
-class Encryptor(
-    private val publicKey: Path,
-    private val recipient: String
-) {
-
-  private val keyringConfig: KeyringConfig
-
-  init {
-    if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
-      Security.addProvider(BouncyCastleProvider())
-    }
-
-    val publicKey = Files.readAllBytes(
-        //Paths.get(Encryptor::class.java.getResource(PUB_KEY_FILE).toURI())
-        publicKey
-    )
-
-    val keyring = KeyringConfigs.forGpgExportedKeys { _ -> null }
-    keyring.addPublicKey(publicKey)
-    keyringConfig = keyring
-  }
-
-  fun encrypt(source: File): InputStream {
-    // TODO: use PipedInputStream and PipedOutputStream
-    //val dest = File("${source.name}.gpg")
-    //val result = FileOutputStream(dest)
-    val result = ByteArrayOutputStream()
-    BouncyGPG
-        .encryptToStream()
-        .withConfig(keyringConfig)
-        .withStrongAlgorithms()
-        .toRecipient(recipient)
-        .andDoNotSign()
-        .binaryOutput()
-        .andWriteTo(result).use { output ->
-          Streams.pipeAll(source.inputStream(), output)
-        }
-    return ByteArrayInputStream(result.toByteArray())
   }
 }
 
@@ -143,8 +25,6 @@ class Cli: CliktCommand() {
       help="Perform OAuth authentication"
   ).flag(default = false)
   */
-
-  // TODO: Explicitly point to client_secret.json and credentials, rather than built-in
 
   val uploadRoot by option(
       "--upload-root",
@@ -214,20 +94,27 @@ class Cli: CliktCommand() {
         //"tmp", "picup-test"
     )
 
-    val picup = PicUp(sourceDir, remote)
+    val uploader = Uploader(sourceDir, remote)
 
-    println("Local files: ${picup.localCount()}")
+    println("Local files: ${uploader.localCount()}")
     println("Remote files: ${remote.fileCount()}")
-    println("Files to upload: ${picup.uploadCount()}")
+    println("Files to upload: ${uploader.uploadCount()}")
 
-    picup.upload(4)
+    uploader.upload(2)
   }
 }
 
 class Stopwatch(val name: String, val bytes: Long) {
-  val start = System.currentTimeMillis()
+  val start = now()
+  var end: Long? = null
+  fun stop(): Long {
+    if (end == null) end = now()
+    return end!!
+  }
+  fun time() = (end ?: now()) - start
+  fun now() =  System.currentTimeMillis()
   fun report(): String {
-    val sec = (System.currentTimeMillis() - start) / 1000.0
+    val sec = time() / 1000.0
     val mbps = (bytes * 8.0 / 1024 / 1024) / sec
     return "$name: ${bytes}b / ${format(sec)}s = ${format(mbps)} Mbps"
   }
