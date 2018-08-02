@@ -14,11 +14,8 @@ class Remote private constructor(
   companion object {
     private const val GPG_MIME_TYPE = "application/pgp-encrypted"
 
-    fun create(driver: GDriver, encryptor: Encryptor, uploadRoot: String): Remote {
-      val dir = driver.findDirectory(uploadRoot)
-      val parentId = dir?.id ?: driver.createDirectory(uploadRoot)
-      if (parentId.isBlank()) throw IllegalStateException("Could not obtain parent directory ID")
-      //println("parentId: $parentId")
+    fun create(driver: GDriver, encryptor: Encryptor, uploadPath: List<String>): Remote {
+      val parentId = driver.createPath(uploadPath, "root").last()
 
       // TODO: check for duplicates?
       val remoteFiles = driver.remoteFiles(parentId).map { it.name }.toMutableSet()

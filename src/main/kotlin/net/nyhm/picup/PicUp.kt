@@ -79,7 +79,9 @@ class Cli: CliktCommand() {
         listOf(DriveScopes.DRIVE_FILE)
     )
 
-    val remote = Remote.create(driver, encryptor, uploadRoot)
+    val uploadPath = listOf(uploadRoot, "Pixel")
+
+    val remote = Remote.create(driver, encryptor, uploadPath)
 
     /*
     val files = remote.fileCount()
