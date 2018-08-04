@@ -22,29 +22,47 @@ class Uploader private constructor(
     }
   }
 
-  val localBytes by lazy { localFiles.sumByLong { it.length() } }
+  val localBytes by lazy { Bytes(localFiles.sumByLong { it.length() }) }
 
   val localCount = localFiles.size
 
-  fun uploadStats(): UploadStats {
-    var count = 0
-    var bytes = 0L
-    localFiles
-        .filter { !remote.hasFile(it) }
-        .also { count = it.size }
-        .forEach { bytes += it.length() }
-    return UploadStats(count, bytes)
-  }
-
-  fun upload(limit: Int = 0) {
+  fun createBatch(limit: Int = 0): UploadBatch {
     var files = localFiles.filter { !remote.hasFile(it) }
     if (limit > 0) files = files.take(limit)
-    println("Uploading ${files.size} file${if (files.size > 1) "s" else ""}...")
-    files.forEach { remote.upload(it) }
+    return UploadBatch(files)
   }
+
+  fun upload(batch: UploadBatch): UploadStats { // TODO: progress listener
+    val stats = mutableListOf<UploadStat>()
+    batch.files.forEach {
+      val start = now()
+      remote.upload(it)
+      stats.add(UploadStat(it, now() - start))
+    }
+    return UploadStats(stats)
+  }
+
+  private fun now() = System.currentTimeMillis()
 }
 
-data class UploadStats(
-    val count: Int,
-    val bytes: Long
-)
+data class UploadBatch(
+    val files: List<File>
+) {
+  val count = files.size
+  val bytes = Bytes(files.sumByLong { it.length() })
+  fun eta(rate: Mbps) = bytes.eta(rate)
+}
+
+data class UploadStat(
+    val file: File,
+    val millis: Long
+) {
+  val bytes = file.length()
+  val mbps = Mbps(bytes, millis)
+}
+
+class UploadStats(val stats: List<UploadStat>) {
+  val bytes = stats.sumByLong { it.bytes }
+  val millis = stats.sumByLong { it.millis }
+  val mbps = Mbps(bytes, millis)
+}

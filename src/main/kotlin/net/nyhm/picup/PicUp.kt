@@ -98,39 +98,16 @@ class Cli: CliktCommand() {
 
     val uploader = Uploader.create(sourceDir, remote)
 
-    val mb = uploader.localBytes / 1024 / 1024
-    val up = uploader.uploadStats()
+    val batch = uploader.createBatch(2)
 
-    println("Local files: ${uploader.localCount} (${mb} MB)")
+    println("Local files: ${uploader.localCount} (${uploader.localBytes})")
     println("Remote files: ${remote.fileCount()}")
-    println("Files to upload: ${up.count}")
+    println("Files to upload: ${batch.count} (${batch.bytes})")
 
-    uploader.upload(2)
-  }
-}
+    val stats = uploader.upload(batch)
 
-class Stopwatch(val name: String, val bytes: Long) {
-  val start = now()
-  var end: Long? = null
-  fun stop(): Long {
-    if (end == null) end = now()
-    return end!!
-  }
-  fun time() = (end ?: now()) - start
-  fun now() =  System.currentTimeMillis()
-  fun report(): String {
-    val sec = time() / 1000.0
-    val mbps = (bytes * 8.0 / 1024 / 1024) / sec
-    return "$name: ${bytes}b / ${format(sec)}s = ${format(mbps)} Mbps"
-  }
-  private fun format(num: Number) = "%.1f".format(num)
-}
+    val remaining = uploader.createBatch()
 
-// https://stackoverflow.com/a/37537228/6004010
-inline fun <T> Iterable<T>.sumByLong(selector: (T) -> Long): Long {
-  var sum = 0L
-  for (element in this) {
-    sum += selector(element)
+    println("Remaining: ${remaining.count} (${remaining.bytes}) @ ${stats.mbps} = ${remaining.eta(stats.mbps)}")
   }
-  return sum
 }
