@@ -3,7 +3,9 @@ package net.nyhm.picup
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
+import com.github.ajalt.clikt.parameters.options.validate
 import com.github.ajalt.clikt.parameters.types.file
+import com.github.ajalt.clikt.parameters.types.int
 import com.google.api.services.drive.DriveScopes
 import net.nyhm.gdriver.GDriver
 import java.io.File
@@ -29,12 +31,16 @@ class Cli: CliktCommand() {
   val uploadRoot by option(
       "--upload-root",
       help = "Upload root directory name"
-  ).default("PicsBackup")
+  ).default(
+      "PicsBackup"
+  )
 
   val appName by option(
       "--app-name",
       help = "Application name"
-  ).default("NEB Pics Backup")
+  ).default(
+      "NEB Pics Backup"
+  )
 
   val clientSecret by option(
       "--client-secret",
@@ -45,7 +51,9 @@ class Cli: CliktCommand() {
       folderOkay = false,
       writable = false,
       readable = true
-  ).default(File("client_secret.json"))
+  ).default(
+      File("client_secret.json")
+  )
 
   val credentialsPath by option(
       "--credentials-path",
@@ -56,7 +64,16 @@ class Cli: CliktCommand() {
       folderOkay = true,
       writable = true,
       readable = true
-  ).default(File("credentials"))
+  ).default(
+      File("credentials")
+  )
+
+  val uploadLimit by option(
+      "--upload-limit",
+      help = "Max files to upload (0 for no limit)"
+  ).int().default(0).validate {
+    require(it >= 0) { "Limit must be >= 0" }
+  }
 
   override fun run() {
     /*
@@ -97,17 +114,42 @@ class Cli: CliktCommand() {
     )
 
     val uploader = Uploader.create(sourceDir, remote)
+    val remaining = uploader.createBatch() // no limit
 
-    val batch = uploader.createBatch(2)
+    val batch = uploader.createBatch(2) // uploadLimit
 
     println("Local files: ${uploader.localCount} (${uploader.localBytes})")
     println("Remote files: ${remote.fileCount()}")
+    println("Total remaining: ${remaining.count} (${remaining.bytes})")
     println("Files to upload: ${batch.count} (${batch.bytes})")
 
-    val stats = uploader.upload(batch)
+    val report = Report(batch) { uploader.createBatch() }
+    val stats = uploader.upload(batch) { println(report.add(it)) }
 
-    val remaining = uploader.createBatch()
+    println("Uploaded ${stats.count} @ ${stats.mbps} | Remaining: ${Report.batchReport(uploader.createBatch(), stats.mbps)}")
+  }
+}
 
-    println("Remaining: ${remaining.count} (${remaining.bytes}) @ ${stats.mbps} = ${remaining.eta(stats.mbps)}")
+class Report(
+    val batch: UploadBatch,
+    val totalRemaining: () -> UploadBatch
+) {
+  val monitor = RateMonitor()
+  val uploaded = mutableSetOf<File>()
+  fun add(stat: UploadStat): String {
+    monitor.add(stat)
+    uploaded.add(stat.file)
+    val batchRemaining = UploadBatch(batch.files.minus(uploaded))
+    val rate = monitor.stats().mbps
+    var report = "${stat.file.name}: ${stat.bytes} / ${stat.time} = ${stat.mbps}"
+    report += " | "
+    report += "Batch remaining: ${batchReport(batchRemaining, rate)}"
+    report += " | "
+    report += "Total remaining: ${batchReport(totalRemaining.invoke(), rate)}"
+    return report
+  }
+  companion object {
+    fun batchReport(batch: UploadBatch, rate: Mbps) =
+        "${batch.count} (${batch.bytes}) @ $rate = ${batch.eta(rate)}"
   }
 }

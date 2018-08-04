@@ -32,12 +32,14 @@ class Uploader private constructor(
     return UploadBatch(files)
   }
 
-  fun upload(batch: UploadBatch): UploadStats { // TODO: progress listener
+  fun upload(batch: UploadBatch, listener: (UploadStat) -> Unit = {}): UploadStats {
     val stats = mutableListOf<UploadStat>()
     batch.files.forEach {
       val start = now()
       remote.upload(it)
-      stats.add(UploadStat(it, now() - start))
+      val stat = UploadStat(it, now() - start)
+      stats.add(stat)
+      listener.invoke(stat)
     }
     return UploadStats(stats)
   }
@@ -57,12 +59,24 @@ data class UploadStat(
     val file: File,
     val millis: Long
 ) {
-  val bytes = file.length()
-  val mbps = Mbps(bytes, millis)
+  val bytes = Bytes(file.length())
+  val time = Time(millis)
+  val mbps = Mbps(bytes, time)
 }
 
 class UploadStats(val stats: List<UploadStat>) {
-  val bytes = stats.sumByLong { it.bytes }
+  val count = stats.size
+  val bytes = Bytes(stats.sumByLong { it.bytes.bytes })
   val millis = stats.sumByLong { it.millis }
-  val mbps = Mbps(bytes, millis)
+  val time = Time(millis)
+  val mbps = Mbps(bytes, time)
+}
+
+class RateMonitor(val historyCount: Int = 0) {
+  private val stats = mutableListOf<UploadStat>()
+  fun add(stat: UploadStat) {
+    stats.add(stat)
+    if (historyCount > 0) while (stats.size > historyCount) stats.removeAt(0)
+  }
+  fun stats() = UploadStats(stats)
 }

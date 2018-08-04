@@ -32,7 +32,6 @@ class Remote private constructor(
 
   fun upload(file: File) {
     val remoteName = remoteName(file)
-    val time = Stopwatch(file.name, file.length())
     driver.upload(UploadSpecBuilder()
         .mimeType(GPG_MIME_TYPE)
         .name(remoteName)
@@ -41,6 +40,5 @@ class Remote private constructor(
         .build()
     )
     remoteFiles.add(remoteName)
-    println(time.report())
   }
 }
