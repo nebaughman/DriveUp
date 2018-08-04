@@ -1,9 +1,7 @@
 package net.nyhm.picup
 
 import com.github.ajalt.clikt.core.CliktCommand
-import com.github.ajalt.clikt.parameters.options.default
-import com.github.ajalt.clikt.parameters.options.option
-import com.github.ajalt.clikt.parameters.options.validate
+import com.github.ajalt.clikt.parameters.options.*
 import com.github.ajalt.clikt.parameters.types.file
 import com.github.ajalt.clikt.parameters.types.int
 import com.google.api.services.drive.DriveScopes
@@ -28,16 +26,9 @@ class Cli: CliktCommand() {
   ).flag(default = false)
   */
 
-  val uploadRoot by option(
-      "--upload-root",
-      help = "Upload root directory name"
-  ).default(
-      "PicsBackup"
-  )
-
   val appName by option(
       "--app-name",
-      help = "Application name"
+      help = "Application name (arbitrary)"
   ).default(
       "NEB Pics Backup"
   )
@@ -68,12 +59,61 @@ class Cli: CliktCommand() {
       File("credentials")
   )
 
+  val publicKey by option(
+      "--public-key",
+      help = "GPG/PGP public key file"
+  ).file(
+      exists = true,
+      fileOkay = true,
+      folderOkay = false,
+      writable = false,
+      readable = true
+  ).default(
+      File("public_key.asc")
+  )
+
+  val encryptionRecipient by option(
+      "--encryption-recipient",
+      help = "GPG/PGP recipient identifier (eg, email address)"
+  ).required() // TODO: only if not justCheck
+
+  val remoteRoot by option(
+      "--remote-root",
+      help = "Remote upload root directory"
+  ).default(
+      "PicsBackup"
+  )
+
   val uploadLimit by option(
       "--upload-limit",
       help = "Max files to upload (0 for no limit)"
   ).int().default(0).validate {
     require(it >= 0) { "Limit must be >= 0" }
   }
+
+  val localRoot by option(
+      "--local-root",
+      help = "Local source root directory"
+  ).file(
+      exists = true,
+      fileOkay = false,
+      folderOkay = true,
+      writable = false,
+      readable = true
+  ).required()
+
+  val localChild by option(
+      "--local-child",
+      help = "Child directory under local root to upload into remote root"
+  ).required().validate {
+    val file = File(localRoot, it)
+    require(file.exists() && file.isDirectory) { "Invalid child directory" }
+  }
+
+  val justCheck by option(
+      "--just-check",
+      help = "Report local and remote files (no uploading)"
+  ).flag(default = false)
 
   override fun run() {
     /*
@@ -83,10 +123,8 @@ class Cli: CliktCommand() {
     */
 
     val encryptor = Encryptor(
-        FileSystems.getDefault().getPath(
-            System.getProperty("user.dir"), "public_key.asc"
-        ),
-        "neb@nebaughman.com"
+        publicKey.toPath(),
+        encryptionRecipient
     )
 
     val driver = GDriver(
@@ -96,7 +134,7 @@ class Cli: CliktCommand() {
         listOf(DriveScopes.DRIVE_FILE)
     )
 
-    val uploadPath = listOf(uploadRoot, "Pixel")
+    val uploadPath = listOf(remoteRoot, localChild)
 
     val remote = Remote.create(driver, encryptor, uploadPath)
 
@@ -107,26 +145,26 @@ class Cli: CliktCommand() {
     println("$count remote $noun")
     */
 
-    val sourceDir = FileSystems.getDefault().getPath(
-        System.getProperty("user.home"),
-        "pics", "Pixel"
-        //"tmp", "picup-test"
-    )
+    val sourceDir = File(localRoot, localChild).toPath()
 
     val uploader = Uploader.create(sourceDir, remote)
     val remaining = uploader.createBatch() // no limit
-
-    val batch = uploader.createBatch(2) // uploadLimit
+    val batch = uploader.createBatch(uploadLimit)
 
     println("Local files: ${uploader.localCount} (${uploader.localBytes})")
     println("Remote files: ${remote.fileCount()}")
     println("Total remaining: ${remaining.count} (${remaining.bytes})")
     println("Files to upload: ${batch.count} (${batch.bytes})")
 
+    if (justCheck) { // do not upload
+      println("Exiting dry run")
+      return
+    }
+
     val report = Report(batch) { uploader.createBatch() }
     val stats = uploader.upload(batch) { println(report.add(it)) }
 
-    println("Uploaded ${stats.count} @ ${stats.mbps} | Remaining: ${Report.batchReport(uploader.createBatch(), stats.mbps)}")
+    println("Uploaded ${stats.count} (${stats.bytes}) @ ${stats.mbps} = ${stats.time} | Remaining: ${Report.batchReport(uploader.createBatch(), stats.mbps)}")
   }
 }
 
@@ -134,7 +172,7 @@ class Report(
     val batch: UploadBatch,
     val totalRemaining: () -> UploadBatch
 ) {
-  val monitor = RateMonitor()
+  val monitor = RateMonitor(10)
   val uploaded = mutableSetOf<File>()
   fun add(stat: UploadStat): String {
     monitor.add(stat)
