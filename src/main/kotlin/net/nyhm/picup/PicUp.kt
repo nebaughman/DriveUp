@@ -7,8 +7,10 @@ import com.github.ajalt.clikt.parameters.types.int
 import com.google.api.services.drive.DriveScopes
 import net.nyhm.gdriver.GDriver
 import java.io.File
-import java.nio.file.FileSystems
 
+/**
+ * Main command-line executable (application entry point)
+ */
 class PicUp {
   companion object {
     @JvmStatic
@@ -16,6 +18,9 @@ class PicUp {
   }
 }
 
+/**
+ * Command-line interpreter
+ */
 class Cli: CliktCommand() {
 
   // TODO: Explicit auth step (not just side-effect of not finding credentials)
@@ -30,7 +35,7 @@ class Cli: CliktCommand() {
       "--app-name",
       help = "Application name (arbitrary)"
   ).default(
-      "NEB Pics Backup"
+      "PicUp"
   )
 
   val clientSecret by option(
@@ -138,13 +143,6 @@ class Cli: CliktCommand() {
 
     val remote = Remote.create(driver, encryptor, uploadPath)
 
-    /*
-    val files = remote.fileCount()
-    val count = if (files == 0) "No" else files.toString()
-    val noun = if (files == 1) "file" else "files"
-    println("$count remote $noun")
-    */
-
     val sourceDir = File(localRoot, localChild).toPath()
 
     val uploader = Uploader.create(sourceDir, remote)
@@ -168,6 +166,9 @@ class Cli: CliktCommand() {
   }
 }
 
+/**
+ * Helper to report ongoing upload stats
+ */
 class Report(
     val batch: UploadBatch,
     val totalRemaining: () -> UploadBatch

@@ -2,22 +2,6 @@ package net.nyhm.picup
 
 import java.util.concurrent.TimeUnit
 
-class Stopwatch(val name: String, val bytes: Long) {
-  val start = now()
-  var end: Long? = null
-  fun stop(): Long {
-    if (end == null) end = now()
-    return end!!
-  }
-  fun time() = (end ?: now()) - start
-  fun now() =  System.currentTimeMillis()
-  fun report(): String {
-    val b = Bytes(bytes)
-    val t = Time(time())
-    return "$name: $b / $t = ${Mbps(b,t)}"
-  }
-}
-
 data class Bytes(val bytes: Long) {
   val bits = bytes * 8
   val kb = bytes / 1024.0
