@@ -10,7 +10,7 @@ If you're not comfortable with command-line applications (and maybe reading a bi
 
 For one thing, it requires you to register as a Google Drive API developer to use it (ie, `client_secret.json` is not included, see Setup).
 
-> This was started as a weekend project, designed to serve my own specific needs (and learn a thing or two).
+> This is really just a weekend project, designed to serve my own specific needs (and learn a thing or two).
 
 ## Overview
 
@@ -20,7 +20,7 @@ The program can be executed repeatedly and will only upload files that do not ye
 
 Files are encrypted to a user's public key prior to upload. PicUp does not (yet) fetch files from Google Drive, nor decrypt them (user's private key is not needed or used).
 
-> To restore files, you would need to manually download the GPG-encrypted files and use another program (such as `gnupg`) to decrypt them with your private key.
+> To restore files, you would need to manually download the GPG-encrypted files and use another program (such as [`gnupg`](https://gnupg.org/)) to decrypt them with your private key.
 
 PicUp is configured to only have access to Google Drive folders and files that it has created. These access rights are summarised during the Google OAuth authentication process, which is performed upon first execution (see Setup).
 
@@ -38,7 +38,7 @@ PicUp (via GDriver, via Google Drive API) uses Google OAuth to authenticate the 
 
 ## Running
 
-PicUp is a command-line only application, bundled into a JAR file. The Java Runtime Environment (JRE) is required (not included). Run PicUp like this:
+PicUp is a command-line only application, bundled into a JAR file. The [Java Runtime Environment (JRE)](https://java.com/) is required (not included). Run PicUp like this:
 
 ```bash
 java -jar picup-VERSION-all.jar [OPTIONS]
@@ -65,18 +65,24 @@ Suppose your files are stored in `~/pics/Pixel`. Your GPG key is available in `p
 
 The following will create the remote path `PicsBackup/Pixel` (in your Google Drive account) and upload all image files from local `pics/Pixel`, encrypting them using `you@example.com`'s public key.
 
-`--upload-limit N` will upload only N files. `--just-check` prevents any actual uploading; just shows summary of what would be uploaded.
-
 ```bash
 java -jar picup-1.0-all.jar --encryption-recipient=you@example.com --local-root ~/pics/ --local-child Pixel --upload-limit 10 --just-check
 ```
 
+* `--upload-limit N` will upload at most _N_ files. 
+
+* `--just-check` prevents any actual uploading; just shows summary of what would be uploaded. This is like a dry run, but _does_ connect to your Google Drive account to scan remote files. This is a useful flag for testing the waters.
+
 ## Technical
 
-* Written in the Kotlin programming language, for the JRE
-* Uses GDriver, a thin wrapper around Google Drive API
-* Uses BouncyGPG (and BouncyCastle) for GPG/PGP encryption
-* Uses CliKt command-line parsing library
+* Written in the [Kotlin](https://kotlinlang.org/) programming language
+* Uses GDriver, a thin wrapper around [Google Drive API](https://developers.google.com/drive/)
+* Uses [BouncyGPG](https://github.com/neuhalje/bouncy-gpg) (and [BouncyCastle](https://bouncycastle.org/)) for GPG/PGP encryption
+* Uses [CliKt](https://ajalt.github.io/clikt/) command-line parsing library
+* The project is built with the [Gradle](https://gradle.org/) build tool
+* Code is maintained with the [Git](https://git-scm.com/) revision control system
+
+> I use the [IntelliJ IDEA](https://www.jetbrains.com/idea/) (Community Edition) development environment
 
 ## Limitations
 
@@ -91,3 +97,16 @@ java -jar picup-1.0-all.jar --encryption-recipient=you@example.com --local-root 
 * Can limit number of images to send in a batch, but cannot limit maximum amount of data to send
 * PicUp does not know how much space you have available in Google Drive (cannot warn you if your drive is full)
 
+## FAQ
+
+Q: Where do I find the executable jar file? 
+
+> A: Build it yourself! (... I plan to provide this in the distribution in the future)
+
+Q: Is this in MavenCentral/JCenter? 
+
+> A: No. I don't expect anyone to depend on this as a library.
+
+Q: Where does GDriver come from? 
+
+> A: GDriver was written to support PicUp. The intent is to make it generally available as well, so it can be referenced as an external dependency. For now, a pre-built library is included in `libs` of this project.
