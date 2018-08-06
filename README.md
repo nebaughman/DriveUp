@@ -1,6 +1,6 @@
 # PicUp
 
-Encrypted photo backup to Google Drive.
+Encrypted file backup to Google Drive.
 
 ## Fair Warning
 
@@ -38,7 +38,7 @@ PicUp (via GDriver, via Google Drive API) uses Google OAuth to authenticate the 
 
 ## Running
 
-PicUp is a command-line only application, bundled into a JAR file. The [Java Runtime Environment (JRE)](https://java.com/) is required (not included). Run PicUp like this:
+PicUp is a command-line only application, bundled into a JAR file. The [Java Runtime Environment (JRE)](https://java.com/) is required (not included) to execute the application JAR file. Run PicUp like this:
 
 ```bash
 java -jar picup-VERSION-all.jar [OPTIONS]
@@ -47,11 +47,11 @@ java -jar picup-VERSION-all.jar [OPTIONS]
 Use `--help` to see options. In brief:
 
 * The user's GPG public key file and recipient identifier (eg, email address) must be specified.
-* The local _root_ and _child_ path of your images must be given. The _child_ directory will be reproduced in the remote file store.
+* The local _root_ and _child_ path of your files must be given. The _child_ directory will be reproduced in the remote file store.
 
 There are a number of other options that can be set... _(kindly refer to the source code)_
 
-As each file is uploaded, statistics are shown, including the estimated remaining time for the current _batch_ (see `--upload-limit`) and full set of images. For example:
+As each file is uploaded, statistics are shown, including the estimated remaining time for the current _batch_ (see `--upload-limit`) and full set of files. For example:
 
 ```text
 IMG_20180421_144942.jpg: 2.2 MB / 4s = 4.3 Mbps | Batch remaining: 7 (24.6 MB) @ 3.3 Mbps = 59s | Total remaining: 1667 (5663.5 MB) @ 3.3 Mbps = 3h49m37s
@@ -94,7 +94,7 @@ java -jar picup-1.0-all.jar --encryption-recipient=you@example.com --local-root 
 * Large memory consumption for large files (file fully encrypted to memory before uploading)
 * One-at-a-time, single-stream-per-file uploading
 * Only uploads ".jpg" files in the given path (not any other files or folders)
-* Can limit number of images to send in a batch, but cannot limit maximum amount of data to send
+* Can limit number of files to send in a batch, but cannot limit maximum amount of data to send
 * PicUp does not know how much space you have available in Google Drive (cannot warn you if your drive is full)
 
 ## FAQ
@@ -110,3 +110,7 @@ Q: Is this in MavenCentral/JCenter?
 Q: Where does GDriver come from? 
 
 > A: GDriver was written to support PicUp. The intent is to make it generally available as well, so it can be referenced as an external dependency. For now, a pre-built library is included in `libs` of this project.
+
+Q: What does this have to do with image files?
+
+> A: Nothing, really. That was just the specific use case I was initially targeting. The only image-related limitation is that only ".jpg" files will be uploaded. That could (should) be easily remedied in a future release.
