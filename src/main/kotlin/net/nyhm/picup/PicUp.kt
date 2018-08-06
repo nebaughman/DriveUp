@@ -38,19 +38,6 @@ class Cli: CliktCommand() {
       "PicUp"
   )
 
-  val clientSecret by option(
-      "--client-secret",
-      help = "Application client secret json file"
-  ).file(
-      exists = true,
-      fileOkay = true,
-      folderOkay = false,
-      writable = false,
-      readable = true
-  ).default(
-      File("client_secret.json")
-  )
-
   val credentialsPath by option(
       "--credentials-path",
       help = "Path to stored user credentials"
@@ -64,6 +51,19 @@ class Cli: CliktCommand() {
       File("credentials")
   )
 
+  val clientSecret by option(
+      "--client-secret",
+      help = "Application client secret json file"
+  ).file(
+      exists = true,
+      fileOkay = true,
+      folderOkay = false,
+      writable = false,
+      readable = true
+  ).default(
+      File("credentials","client_secret.json")
+  )
+
   val publicKey by option(
       "--public-key",
       help = "GPG/PGP public key file"
@@ -74,7 +74,7 @@ class Cli: CliktCommand() {
       writable = false,
       readable = true
   ).default(
-      File("public_key.asc")
+      File("credentials", "public_key.asc")
   )
 
   val encryptionRecipient by option(

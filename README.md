@@ -61,7 +61,7 @@ Notice that source files are encrypted prior to upload and given a `.gpg` file e
 
 ## Example
 
-Suppose your files are stored in `~/pics/Pixel`. Your GPG key is available in `public_key.asc` (the default) and your GPG key identifier is `you@example.com`. The default (if not specified) `--remote-root` directory is `PicsBackup`.
+Suppose your files are stored in `~/pics/Pixel`. `credentials/client_secret.json` holds your app's identification. Your GPG key is available in `credentials/public_key.asc` (the default) and your GPG key identifier is `you@example.com`. The default (if not specified) `--remote-root` directory is `PicsBackup`.
 
 The following will create the remote path `PicsBackup/Pixel` (in your Google Drive account) and upload all image files from local `pics/Pixel`, encrypting them using `you@example.com`'s public key.
 
