@@ -28,9 +28,11 @@ No temporary space is used. File encryption is performed in-process and streamed
 
 ## Setup
 
-PicUp uses the GDriver library (a thin wrapper around Google Drive API). GDriver requires Google Drive API app registration (not included). Registering as a Google Drive API developer provides `client_secret.json`, needed by GDriver.
+PicUp uses the Google Drive API, which requires app registration, to provide `client_secret.json` application credentials. To use PicUp, you must register as a Google developer and obtain your own `client_secret.jason` application credentials.
 
-PicUp (via GDriver, via Google Drive API) uses Google OAuth to authenticate the user and grant authorization to use the user's Google Drive service. When first running PicUp, if stored credentials are not available, a browser will be opened to an authentication and authorization URL. Google Drive account access must be granted by the user. Afterward, credentials are stored in a local file for subsequent executions.
+> The `client_secret.json` application credentials used to develop PicUp are not included.
+
+PicUp (via Google Drive API) uses Google OAuth to authenticate the user and grant authorization to use the user's Google Drive service. When first running PicUp, if stored credentials are not available, a browser will be opened to an authentication and authorization URL. Google Drive account access must be granted by the user. Afterward, credentials are stored in a local file for subsequent executions.
 
 > You may revoke access to this program in your Google account, which invalidates the stored credentials (you'll have to authorize the app once again).
 >
@@ -76,7 +78,7 @@ java -jar picup-1.0-all.jar --encryption-recipient=you@example.com --local-root 
 ## Technical
 
 * Written in the [Kotlin](https://kotlinlang.org/) programming language
-* Uses GDriver, a thin wrapper around [Google Drive API](https://developers.google.com/drive/)
+* Uses [Google Drive API](https://developers.google.com/drive/)
 * Uses [BouncyGPG](https://github.com/neuhalje/bouncy-gpg) (and [BouncyCastle](https://bouncycastle.org/)) for GPG/PGP encryption
 * Uses [CliKt](https://ajalt.github.io/clikt/) command-line parsing library
 * The project is built with the [Gradle](https://gradle.org/) build tool
@@ -106,10 +108,6 @@ Q: Where do I find the executable jar file?
 Q: Is this in MavenCentral/JCenter? 
 
 > A: No. I don't expect anyone to depend on this as a library.
-
-Q: Where does GDriver come from? 
-
-> A: GDriver was written to support PicUp. The intent is to make it generally available as well, so it can be referenced as an external dependency. For now, a pre-built library is included in `libs` of this project.
 
 Q: What does this have to do with image files?
 

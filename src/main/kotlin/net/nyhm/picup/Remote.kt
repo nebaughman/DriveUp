@@ -1,7 +1,5 @@
 package net.nyhm.picup
 
-import net.nyhm.gdriver.GDriver
-import net.nyhm.gdriver.UploadSpecBuilder
 import java.io.File
 
 /**

@@ -5,7 +5,6 @@ import com.github.ajalt.clikt.parameters.options.*
 import com.github.ajalt.clikt.parameters.types.file
 import com.github.ajalt.clikt.parameters.types.int
 import com.google.api.services.drive.DriveScopes
-import net.nyhm.gdriver.GDriver
 import java.io.File
 
 /**
