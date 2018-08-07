@@ -1,4 +1,4 @@
-package net.nyhm.picup
+package net.nyhm.driveup
 
 import com.google.api.client.auth.oauth2.Credential
 import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInstalledApp
@@ -22,6 +22,10 @@ const val DIR_MIME_TYPE = "application/vnd.google-apps.folder"
 
 /**
  * This class encapsulates interaction with Google Drive API.
+ *
+ * Fair warning: This was based on the Google Drive API Java Quickstart guide.
+ * It has been refactored and rewritten in Kotlin, but still has many
+ * assumptions/presumptions from the original sample code.
  *
  * Scopes are tied to stored credentials. Cannot re-use stored credentials if changing scopes.
  */

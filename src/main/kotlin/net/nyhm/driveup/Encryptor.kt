@@ -1,4 +1,4 @@
-package net.nyhm.picup
+package net.nyhm.driveup
 
 import name.neuhalfen.projects.crypto.bouncycastle.openpgp.BouncyGPG
 import name.neuhalfen.projects.crypto.bouncycastle.openpgp.keys.keyrings.KeyringConfig

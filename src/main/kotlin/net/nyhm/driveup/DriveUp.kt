@@ -1,4 +1,4 @@
-package net.nyhm.picup
+package net.nyhm.driveup
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.options.*
@@ -10,7 +10,7 @@ import java.io.File
 /**
  * Main command-line executable (application entry point)
  */
-class PicUp {
+class DriveUp {
   companion object {
     @JvmStatic
     fun main(args: Array<String>) = Cli().main(args)
@@ -34,7 +34,7 @@ class Cli: CliktCommand() {
       "--app-name",
       help = "Application name (arbitrary)"
   ).default(
-      "PicUp"
+      "DriveUp"
   )
 
   val credentialsPath by option(

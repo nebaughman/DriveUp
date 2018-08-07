@@ -1,4 +1,4 @@
-package net.nyhm.picup
+package net.nyhm.driveup
 
 import com.google.api.services.drive.DriveScopes
 import org.junit.Test

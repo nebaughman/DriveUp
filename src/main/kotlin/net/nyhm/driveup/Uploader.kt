@@ -1,4 +1,4 @@
-package net.nyhm.picup
+package net.nyhm.driveup
 
 import java.io.File
 import java.io.FileFilter

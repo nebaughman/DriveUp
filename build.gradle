@@ -7,9 +7,9 @@ plugins {
 
 version '1.0-SNAPSHOT'
 
-group 'net.nyhm.picup'
+group 'net.nyhm.driveup'
 sourceCompatibility = 1.8
-mainClassName = 'net.nyhm.picup.PicUp'
+mainClassName = 'net.nyhm.driveup.DriveUp'
 
 repositories {
     mavenCentral()
