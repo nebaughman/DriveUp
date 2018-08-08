@@ -6,6 +6,7 @@ import com.github.ajalt.clikt.parameters.types.file
 import com.github.ajalt.clikt.parameters.types.int
 import com.google.api.services.drive.DriveScopes
 import java.io.File
+import java.io.FileFilter
 
 /**
  * Main command-line executable (application entry point)
@@ -85,7 +86,7 @@ class Cli: CliktCommand() {
       "--remote-root",
       help = "Remote upload root directory"
   ).default(
-      "PicsBackup"
+      "DriveUp"
   )
 
   val uploadLimit by option(
@@ -119,6 +120,20 @@ class Cli: CliktCommand() {
       help = "Report local and remote files (no uploading)"
   ).flag(default = false)
 
+  val fileExtensions by option(
+      "--file-extensions",
+      help = "Include files with these extensions " +
+             "(as comma-delimited list, or this option may be given multiple times)"
+  ).multiple()
+
+  // TODO: recursive
+  /*
+  val recursive by option(
+      "--recursive", "-r",
+      help = "Upload into subdirectories"
+  ).flag(default = false)
+  */
+
   override fun run() {
     /*
     if (auth) {
@@ -144,7 +159,13 @@ class Cli: CliktCommand() {
 
     val sourceDir = File(localRoot, localChild).toPath()
 
-    val uploader = Uploader.create(sourceDir, remote)
+    // build set of acceptable file extensions
+    val ext = fileExtensions.flatMap { it.split(",") }.toSet()
+
+    // filter to specified extensions (or any file if none given)
+    val filter = FileFilter { ext.isEmpty() || ext.contains(it.extension) }
+
+    val uploader = Uploader.create(sourceDir, remote, filter)
     val remaining = uploader.createBatch() // no limit
     val batch = uploader.createBatch(uploadLimit)
 

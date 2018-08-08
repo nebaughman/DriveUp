@@ -14,7 +14,7 @@ For one thing, it requires you to register as a Google Drive API developer to us
 
 ## Overview
 
-DriveUp uploads a set of local image files to Google Drive, in encrypted form, for backup purposes.
+DriveUp uploads a set of local files to Google Drive, in encrypted form, for backup purposes.
 
 The program can be executed repeatedly and will only upload files that do not yet appear in the target Google Drive path. 
 
@@ -28,13 +28,13 @@ No temporary space is used. File encryption is performed in-process and streamed
 
 ## Setup
 
-DriveUp uses the Google Drive API, which requires app registration, to provide `client_secret.json` application credentials. To use DriveUp, you must register as a Google developer and obtain your own `client_secret.jason` application credentials.
+DriveUp uses the Google Drive API, which requires app registration. To use DriveUp, you must register as a Google developer and obtain your own `client_secret.jason` application credentials.
 
 > The `client_secret.json` application credentials used to develop DriveUp are not included.
 
 DriveUp (via Google Drive API) uses Google OAuth to authenticate the user and grant authorization to use the user's Google Drive service. When first running DriveUp, if stored credentials are not available, a browser will be opened to an authentication and authorization URL. Google Drive account access must be granted by the user. Afterward, credentials are stored in a local file for subsequent executions.
 
-> You may revoke access to this program in your Google account, which invalidates the stored credentials (you'll have to authorize the app once again).
+> You may revoke access to the app in your Google account, which invalidates the stored credentials (you'll have to authorize the app once again).
 >
 > Similarly, if you delete the `StoredCredentials` file, you will need to authenticate to Google and authorize access to the app once again.
 
@@ -51,6 +51,8 @@ Use `--help` to see options. In brief:
 * The user's GPG public key file and recipient identifier (eg, email address) must be specified.
 * The local _root_ and _child_ path of your files must be given. The _child_ directory will be reproduced in the remote file store.
 
+> Note: File/path options are likely to change in a future version
+
 There are a number of other options that can be set... _(kindly refer to the source code)_
 
 As each file is uploaded, statistics are shown, including the estimated remaining time for the current _batch_ (see `--upload-limit`) and full set of files. For example:
@@ -63,12 +65,12 @@ Notice that source files are encrypted prior to upload and given a `.gpg` file e
 
 ## Example
 
-Suppose your files are stored in `~/pics/Pixel`. `credentials/client_secret.json` holds your app's identification. Your GPG key is available in `credentials/public_key.asc` (the default) and your GPG key identifier is `you@example.com`. The default (if not specified) `--remote-root` directory is `PicsBackup`.
+Suppose your files are stored in `~/pics/Pixel`. `credentials/client_secret.json` holds your app's identification. Your GPG key is available in `credentials/public_key.asc` (the default) and your GPG key identifier is `you@example.com`. The default (if not specified) `--remote-root` directory is `DriveUp`.
 
-The following will create the remote path `PicsBackup/Pixel` (in your Google Drive account) and upload all image files from local `pics/Pixel`, encrypting them using `you@example.com`'s public key.
+The following will create the remote path `DriveUp/Pixel` (in your Google Drive account) and upload all `.jpg` and `.mp4` files from local `pics/Pixel`, encrypting them using `you@example.com`'s public key.
 
 ```bash
-java -jar driveup-1.0-all.jar --encryption-recipient=you@example.com --local-root ~/pics/ --local-child Pixel --upload-limit 10 --just-check
+java -jar driveup-1.0-all.jar --encryption-recipient=you@example.com --local-root ~/pics/ --local-child Pixel --file-extensions jpg,mp4 --upload-limit 10 --just-check
 ```
 
 * `--upload-limit N` will upload at most _N_ files. 
@@ -80,7 +82,7 @@ java -jar driveup-1.0-all.jar --encryption-recipient=you@example.com --local-roo
 * Written in the [Kotlin](https://kotlinlang.org/) programming language
 * Uses [Google Drive API](https://developers.google.com/drive/)
 * Uses [BouncyGPG](https://github.com/neuhalje/bouncy-gpg) (and [BouncyCastle](https://bouncycastle.org/)) for GPG/PGP encryption
-* Uses [CliKt](https://ajalt.github.io/clikt/) command-line parsing library
+* Uses [Clikt](https://ajalt.github.io/clikt/) command-line parsing library
 * The project is built with the [Gradle](https://gradle.org/) build tool
 * Code is maintained with the [Git](https://git-scm.com/) revision control system
 
@@ -95,10 +97,12 @@ java -jar driveup-1.0-all.jar --encryption-recipient=you@example.com --local-roo
 * No error handling (if something crashes, check the state of things and try again)
 * Large memory consumption for large files (file fully encrypted to memory before uploading)
 * One-at-a-time, single-stream-per-file uploading
-* Only uploads ".jpg" files in the given path (not any other files or folders)
+* Does not recurse into subdirectories
 * Can limit number of files to send in a batch, but cannot limit maximum amount of data to send
 * Does not know how much space you have available in Google Drive (cannot warn you if your drive is full)
 * OAuth is triggered when Google Drive API logic does not find the `StoredCredential` file; it would be better if OAuth process and storage of credentials could be more explicitly controlled
+* Remote files checked by name only (cannot detect files with changed local content)
+* Stored file names are not obscured/encrypted (because this is how DriveUp identifies files)
 
 ## FAQ
 
@@ -106,10 +110,6 @@ Q: Where do I find the executable jar file?
 
 > A: Build it yourself! (... I plan to provide this in the distribution in the future)
 
-Q: Is this in MavenCentral/JCenter? 
+Q: Should I rely on this for important file backups?
 
-> A: No. I don't expect anyone to depend on this as a library.
-
-Q: What does this have to do with image files?
-
-> A: Nothing, really. That was just the specific use case I was initially targeting. The only image-related limitation is that only ".jpg" files will be uploaded. That could (should) be easily remedied in a future release.
+> A: No! DriveUp is very preliminary and not well tested. Consider yourself warned (and see the License).

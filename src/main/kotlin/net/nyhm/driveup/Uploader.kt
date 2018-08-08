@@ -15,10 +15,14 @@ class Uploader private constructor(
 ) {
 
   companion object {
-    fun create(sourceDir: Path, remote: Remote): Uploader {
+    fun create(
+        sourceDir: Path,
+        remote: Remote,
+        fileFilter: FileFilter = FileFilter { true }
+    ): Uploader {
       if (!Files.exists(sourceDir)) throw IllegalArgumentException("Source dir does not exist: $sourceDir")
       val files = sourceDir.toFile().listFiles(FileFilter {
-        it.isFile && it.name.endsWith(".jpg", true)
+        it.isFile && fileFilter.accept(it)
       })
       val localFiles = TreeSet(files.toList())
       return Uploader(localFiles, remote)
