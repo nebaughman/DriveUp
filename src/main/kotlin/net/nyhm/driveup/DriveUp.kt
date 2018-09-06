@@ -117,7 +117,7 @@ class Cli: CliktCommand() {
 
   val justCheck by option(
       "--just-check",
-      help = "Report local and remote files (no uploading)"
+      help = "Report local and remote files (no uploading, see docs for caveats)"
   ).flag(default = false)
 
   val fileExtensions by option(
@@ -169,8 +169,10 @@ class Cli: CliktCommand() {
     val remaining = uploader.createBatch() // no limit
     val batch = uploader.createBatch(uploadLimit)
 
+    println("Local path: $sourceDir")
     println("Local files: ${uploader.localCount} (${uploader.localBytes})")
-    println("Remote files: ${remote.fileCount()}")
+    println("Remote path: /${uploadPath.joinToString("/")}")
+    println("Remote files: ${remote.fileCount()} (${remote.totalBytes()})")
     println("Total remaining: ${remaining.count} (${remaining.bytes})")
     println("Files to upload: ${batch.count} (${batch.bytes})")
 

@@ -75,7 +75,7 @@ java -jar driveup-1.0-all.jar --encryption-recipient=you@example.com --local-roo
 
 * `--upload-limit N` will upload at most _N_ files. 
 
-* `--just-check` prevents any actual uploading; just shows summary of what would be uploaded. This is like a dry run, but _does_ connect to your Google Drive account to scan remote files. This is a useful flag for testing the waters.
+* `--just-check` prevents any actual uploading; just shows summary of what would be uploaded. This is like a dry run, but _does_ connect to your Google Drive account to scan remote files. and _will_ create the (empty) remote path if it does not exist. This is a useful flag for testing the waters.
 
 ## Technical
 

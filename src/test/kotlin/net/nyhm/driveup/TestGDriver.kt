@@ -36,14 +36,14 @@ class TestGDriver {
 
     val parentId = driver.createPath(UPLOAD_PATH, "root").last()
 
-    val fileId = driver.upload(UploadSpecBuilder()
+    val file = driver.upload(UploadSpecBuilder()
         .mimeType(UPLOAD_FILE_TYPE)
         .name(UPLOAD_FILE_NAME)
         .source(TestGDriver::class.java.getResourceAsStream(UPLOAD_FILE_PATH))
         .parentId(parentId)
         .build()
     )
-    println("Uploaded fileId: $fileId")
+    println("Uploaded file: $file")
 
     driver.remoteFiles(parentId).forEach { println(it) }
 

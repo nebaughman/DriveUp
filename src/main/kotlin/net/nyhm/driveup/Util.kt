@@ -6,19 +6,17 @@ data class Bytes(val bytes: Long) {
   val bits = bytes * 8
   val kb = bytes / 1024.0
   val mb = kb / 1024.0
+  val gb = mb / 1024.0
 
   val mbits = bits / 1024.0 / 1024.0
 
   fun eta(rate: Mbps) = Time(Math.round(mbits / rate.mbps * 1000))
 
-  override fun toString(): String {
-    return if (mb > 1) {
-      format(mb) + " MB"
-    } else if (kb > 1) {
-      format(kb) + " KB"
-    } else {
-      "$bytes bytes"
-    }
+  override fun toString() = when {
+    gb > 1 -> format(gb) + " GB"
+    mb > 1 -> format(mb) + " MB"
+    kb > 1 -> format(kb) + " KB"
+    else -> "$bytes bytes"
   }
 }
 

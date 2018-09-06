@@ -113,7 +113,7 @@ class GDriver(
       val request = service.files().list()
           //.setPageSize(10)
           .setPageToken(pageToken)
-          //.setFields("nextPageToken, files(id, name, size)")
+          .setFields("nextPageToken, files(id, name, size, mimeType)") // kind
           .setQ(query.build())
       val result = request.execute()
       val batch = result.files
@@ -123,14 +123,13 @@ class GDriver(
     return files
   }
 
-  fun upload(spec: UploadSpec): String {
+  fun upload(spec: UploadSpec): File {
     val fileMetadata = File()
     fileMetadata.name = spec.name
     fileMetadata.parents = spec.parents
-    val remote = service.files().create(fileMetadata, spec.content)
-        .setFields("id") // could add "parents" if parent specified
+    return service.files().create(fileMetadata, spec.content)
+        .setFields("id, name, size, mimeType") // could add "parents" if parent specified
         .execute()
-    return remote.id
   }
 
   fun createDirectory(name: String, parentId: String? = null): String {

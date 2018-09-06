@@ -11,7 +11,7 @@ class Remote private constructor(
     private val driver: GDriver,
     private val encryptor: Encryptor,
     private val parentId: String,
-    private val remoteFiles: MutableSet<String>
+    private val remoteFiles: MutableSet<com.google.api.services.drive.model.File>
 ) {
 
   companion object {
@@ -28,10 +28,10 @@ class Remote private constructor(
     fun create(driver: GDriver, encryptor: Encryptor, uploadPath: List<String>): Remote {
       val parentId = driver.createPath(uploadPath, "root").last()
 
-      // TODO: check for duplicates?
-      val remoteFiles = driver.remoteFiles(parentId).map { it.name }.toMutableSet()
+      // TODO: Check for duplicates? Is model.File ok in Set (good equals)?
+      val files = driver.remoteFiles(parentId).toMutableSet()
 
-      return Remote(driver, encryptor, parentId, remoteFiles)
+      return Remote(driver, encryptor, parentId, files)
     }
   }
 
@@ -39,21 +39,22 @@ class Remote private constructor(
 
   fun fileCount() = remoteFiles.size
 
-  fun hasFile(file: File) = remoteFiles.contains(remoteName(file))
+  fun totalBytes() = Bytes(remoteFiles.sumByLong { it.getSize() })
+
+  fun hasFile(file: File) = remoteName(file).let { name -> remoteFiles.any { it.name == name } }
 
   /**
    * Upload the file into the configured path, passing its contents through the configured [Encryptor].
    * The uploaded file name is given a GPG file extension (".gpg") and mime type.
    */
   fun upload(file: File) {
-    val remoteName = remoteName(file)
-    driver.upload(UploadSpecBuilder()
-        .mimeType(GPG_MIME_TYPE)
-        .name(remoteName)
-        .parentId(parentId)
-        .source(encryptor.encrypt(file))
-        .build()
-    )
-    remoteFiles.add(remoteName)
+    remoteFiles.add(
+        driver.upload(UploadSpecBuilder()
+          .mimeType(GPG_MIME_TYPE)
+          .name(remoteName(file))
+          .parentId(parentId)
+          .source(encryptor.encrypt(file))
+          .build()
+    ))
   }
 }
