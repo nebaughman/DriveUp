@@ -9,7 +9,7 @@ version '1.0-SNAPSHOT'
 
 group 'net.nyhm.driveup'
 sourceCompatibility = 1.8
-mainClassName = 'net.nyhm.driveup.DriveUp'
+mainClassName = 'net.nyhm.driveup.DriveUpKt'
 
 repositories {
     mavenCentral()

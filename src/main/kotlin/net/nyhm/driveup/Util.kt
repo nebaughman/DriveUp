@@ -2,6 +2,9 @@ package net.nyhm.driveup
 
 import java.util.concurrent.TimeUnit
 
+const val GPG_MIME_TYPE = "application/pgp-encrypted"
+const val GPG_FILE_EXT = ".gpg"
+
 data class Bytes(val bytes: Long) {
   val bits = bytes * 8
   val kb = bytes / 1024.0
