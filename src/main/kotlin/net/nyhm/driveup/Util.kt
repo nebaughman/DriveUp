@@ -1,6 +1,10 @@
 package net.nyhm.driveup
 
+import java.util.*
 import java.util.concurrent.TimeUnit
+
+const val GPG_MIME_TYPE = "application/pgp-encrypted"
+const val GPG_FILE_EXT = ".gpg"
 
 data class Bytes(val bytes: Long) {
   val bits = bytes * 8
@@ -52,4 +56,15 @@ inline fun <T> Iterable<T>.sumByLong(selector: (T) -> Long): Long {
     sum += selector(element)
   }
   return sum
+}
+
+/**
+ * Contains the build version
+ */
+object Version {
+  val version: String by lazy {
+    val props = Properties()
+    props.load(javaClass.getResource("/version.properties").openStream())
+    props["version"] as String
+  }
 }

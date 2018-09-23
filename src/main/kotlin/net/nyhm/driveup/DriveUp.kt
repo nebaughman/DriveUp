@@ -1,6 +1,9 @@
 package net.nyhm.driveup
 
 import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.core.requireObject
+import com.github.ajalt.clikt.core.subcommands
+import com.github.ajalt.clikt.output.TermUi.echo
 import com.github.ajalt.clikt.parameters.options.*
 import com.github.ajalt.clikt.parameters.types.file
 import com.github.ajalt.clikt.parameters.types.int
@@ -8,32 +11,27 @@ import com.google.api.services.drive.DriveScopes
 import java.io.File
 import java.io.FileFilter
 
+data class Config(
+    val appName: String,
+    val credentialsPath: File,
+    val clientSecret: File
+)
+
+fun main(args: Array<String>) = DriveUp()
+    .versionOption(
+      version = Version.version,
+      help = "Show the version and exit",
+      message = { "DriveUp v$it" }
+    ).subcommands(
+      ListRemote(), Upload()
+    ).main(args)
+
 /**
  * Main command-line executable (application entry point)
  */
-class DriveUp {
-  companion object {
-    @JvmStatic
-    fun main(args: Array<String>) = Cli().versionOption(
-        version = "0.1", // TODO: get version from build
-        help = "Show the version and exit",
-        message = { "DriveUp v$it" }
-    ).main(args)
-  }
-}
-
-/**
- * Command-line interpreter
- */
-class Cli: CliktCommand(name = "driveup") {
-
-  // TODO: Explicit auth step (not just side-effect of not finding credentials)
-  /*
-  val auth by option(
-      "--auth", "--authenticate",
-      help="Perform OAuth authentication"
-  ).flag(default = false)
-  */
+class DriveUp: CliktCommand(
+    help = "Send files to Google Drive"
+) {
 
   val appName by option(
       "--app-name",
@@ -68,6 +66,54 @@ class Cli: CliktCommand(name = "driveup") {
       File("credentials","client_secret.json")
   )
 
+  override fun run() {
+    // provide this to subcommands
+    context.obj = Config(appName, credentialsPath, clientSecret)
+  }
+}
+
+class ListRemote: CliktCommand(
+    name = "list",
+    help = "List remote files (that are accessible to credentials)"
+) {
+
+  val config: Config by requireObject()
+
+  override fun run() {
+
+    val driver = GDriver(
+        config.appName,
+        config.clientSecret,
+        config.credentialsPath,
+        listOf(DriveScopes.DRIVE_FILE)
+    )
+
+    driver.remoteFiles().forEach {
+      echo(it.name)
+    }
+  }
+}
+
+class Upload: CliktCommand(
+    help = "Encrypt and upload files"
+) {
+
+  // TODO: Explicit auth step (not just side-effect of not finding credentials)
+  /*
+  val auth by option(
+      "--auth", "--authenticate",
+      help="Perform OAuth authentication"
+  ).flag(default = false)
+  */
+
+  // TODO: Encryption optional
+  /*
+  val noEncryption by option(
+      "--no-encryption",
+      help = "Do not use encryption"
+  ).flag(default = false)
+  */
+
   val publicKey by option(
       "--public-key",
       help = "GPG/PGP public key file"
@@ -84,7 +130,11 @@ class Cli: CliktCommand(name = "driveup") {
   val encryptionRecipient by option(
       "--encryption-recipient",
       help = "GPG/PGP recipient identifier (eg, email address)"
-  ).required() // TODO: only if not justCheck
+  )
+  .required() // TODO: only if not justCheck or noEncryption
+  //.validate {
+  //  require(!noEncryption || it.isNotEmpty()) // this does not work
+  //}
 
   val remoteRoot by option(
       "--remote-root",
@@ -138,22 +188,31 @@ class Cli: CliktCommand(name = "driveup") {
   ).flag(default = false)
   */
 
+  val config: Config by requireObject()
+
   override fun run() {
+
     /*
-    if (auth) {
-      TermUi.echo("Perform auth")
+    val encryptor = if (noEncryption) {
+      NonEncryptor
+    } else if (encryptionRecipient == null) {
+      throw MissingParameter("Encryption recipient required")
+    } else {
+      GpgEncryptor(
+          publicKey.toPath(),
+          encryptionRecipient!!
+      )
     }
     */
-
-    val encryptor = Encryptor(
+    val encryptor = GpgEncryptor(
         publicKey.toPath(),
         encryptionRecipient
     )
 
     val driver = GDriver(
-        appName,
-        clientSecret,
-        credentialsPath,
+        config.appName,
+        config.clientSecret,
+        config.credentialsPath,
         listOf(DriveScopes.DRIVE_FILE)
     )
 

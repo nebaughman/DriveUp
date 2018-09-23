@@ -15,9 +15,6 @@ class Remote private constructor(
 ) {
 
   companion object {
-    private const val GPG_MIME_TYPE = "application/pgp-encrypted"
-    private const val GPG_FILE_EXT = ".gpg"
-
     /**
      * Create a Remote instance.
      *
@@ -33,27 +30,37 @@ class Remote private constructor(
 
       return Remote(driver, encryptor, parentId, files)
     }
-  }
 
-  fun remoteName(file: File) = file.name + GPG_FILE_EXT
+    fun mimeType(fileName: String): String {
+      return if (fileName.endsWith(GPG_FILE_EXT)) GPG_MIME_TYPE
+      else throw IllegalArgumentException("Can only upload gpg files")
+    }
+
+    fun File.mimeType() = mimeType(this.name)
+  }
 
   fun fileCount() = remoteFiles.size
 
   fun totalBytes() = Bytes(remoteFiles.sumByLong { it.getSize() })
 
-  fun hasFile(file: File) = remoteName(file).let { name -> remoteFiles.any { it.name == name } }
+  fun hasFile(file: File) = encryptor.remoteName(file).let {
+    name -> remoteFiles.any { it.name == name }
+  }
 
   /**
    * Upload the file into the configured path, passing its contents through the configured [Encryptor].
    * The uploaded file name is given a GPG file extension (".gpg") and mime type.
    */
   fun upload(file: File) {
+    val remoteName = encryptor.remoteName(file)
+    val mimeType = mimeType(remoteName)
+    val inputStream = encryptor.encrypt(file)
     remoteFiles.add(
         driver.upload(UploadSpecBuilder()
-          .mimeType(GPG_MIME_TYPE)
-          .name(remoteName(file))
+          .mimeType(mimeType)
+          .name(remoteName)
           .parentId(parentId)
-          .source(encryptor.encrypt(file))
+          .source(inputStream)
           .build()
     ))
   }

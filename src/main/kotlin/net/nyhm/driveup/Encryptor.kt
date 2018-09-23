@@ -13,14 +13,26 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.security.Security
 
+interface Encryptor {
+  fun encrypt(source: File): InputStream
+  fun remoteName(source: File): String
+}
+
+/**
+ * An [Encryptor] that does not encrypt (identity encryptor)
+ */
+object NonEncryptor: Encryptor {
+  override fun encrypt(source: File) = source.inputStream()
+  override fun remoteName(source: File) = source.name
+}
+
 /**
  * This class encrypts files to a specified [recipient], given the recipient's GPG/PGP [publicKey].
- *
  */
-class Encryptor(
+class GpgEncryptor(
     private val publicKey: Path,
     private val recipient: String
-) {
+): Encryptor {
 
   private val keyringConfig: KeyringConfig
 
@@ -39,11 +51,13 @@ class Encryptor(
     keyringConfig = keyring
   }
 
+  override fun remoteName(source: File) = source.name + GPG_FILE_EXT
+
   /**
    * Encrypt the given [source] file.
    * This method produces an InputStream for consuming the encrypted content.
    */
-  fun encrypt(source: File): InputStream {
+  override fun encrypt(source: File): InputStream {
     // TODO: use PipedInputStream and PipedOutputStream
     //val dest = File("${source.name}.gpg")
     //val result = FileOutputStream(dest)
