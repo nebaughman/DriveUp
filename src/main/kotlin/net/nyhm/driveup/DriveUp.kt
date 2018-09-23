@@ -14,14 +14,18 @@ import java.io.FileFilter
 class DriveUp {
   companion object {
     @JvmStatic
-    fun main(args: Array<String>) = Cli().main(args)
+    fun main(args: Array<String>) = Cli().versionOption(
+        version = "0.1", // TODO: get version from build
+        help = "Show the version and exit",
+        message = { "DriveUp v$it" }
+    ).main(args)
   }
 }
 
 /**
  * Command-line interpreter
  */
-class Cli: CliktCommand() {
+class Cli: CliktCommand(name = "driveup") {
 
   // TODO: Explicit auth step (not just side-effect of not finding credentials)
   /*
