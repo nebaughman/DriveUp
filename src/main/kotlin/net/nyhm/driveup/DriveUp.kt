@@ -17,9 +17,14 @@ data class Config(
     val clientSecret: File
 )
 
-fun main(args: Array<String>) = DriveUp().subcommands(
-    ListRemote(), Upload()
-).main(args)
+fun main(args: Array<String>) = DriveUp()
+    .versionOption(
+      version = Version.version,
+      help = "Show the version and exit",
+      message = { "DriveUp v$it" }
+    ).subcommands(
+      ListRemote(), Upload()
+    ).main(args)
 
 /**
  * Main command-line executable (application entry point)
@@ -69,7 +74,7 @@ class DriveUp: CliktCommand(
 
 class ListRemote: CliktCommand(
     name = "list",
-    help = "List all remote files (accessible to credentials)"
+    help = "List remote files (that are accessible to credentials)"
 ) {
 
   val config: Config by requireObject()
