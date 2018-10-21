@@ -28,4 +28,12 @@ class TestDriveUp {
         "list"
     ))
   }
+
+  @Test
+  fun testJson() {
+    main(arrayOf(
+        "--config=local/test.creds",
+        "json"
+    ))
+  }
 }
