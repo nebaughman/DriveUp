@@ -12,14 +12,9 @@ import com.google.api.client.http.InputStreamContent
 import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.json.jackson2.JacksonFactory
 import com.google.api.client.util.store.DataStoreFactory
-import com.google.api.client.util.store.FileDataStoreFactory
 import com.google.api.services.drive.Drive
 import com.google.api.services.drive.model.File
-import java.io.ByteArrayInputStream
-import java.io.IOException
-import java.io.InputStream
-import java.io.InputStreamReader
-import java.nio.file.Path
+import java.io.*
 
 const val DIR_MIME_TYPE = "application/vnd.google-apps.folder"
 
@@ -43,40 +38,19 @@ class GDriver(
 
     private val jsonFactory: JacksonFactory = JacksonFactory.getDefaultInstance()
 
-    private fun readSecrets(file: java.io.File): GoogleClientSecrets {
+    fun readSecrets(file: java.io.File): GoogleClientSecrets {
       val input = GDriver::class.java.getResourceAsStream(file.absolutePath) ?: file.inputStream()
       return GoogleClientSecrets.load(jsonFactory, InputStreamReader(input))
     }
 
-    private fun readSecrets(bytes: ByteArray): GoogleClientSecrets {
+    fun readSecrets(bytes: ByteArray): GoogleClientSecrets {
       return GoogleClientSecrets.load(jsonFactory, InputStreamReader(ByteArrayInputStream(bytes)))
     }
+
+    fun readSecrets(json: String): GoogleClientSecrets {
+      return GoogleClientSecrets.load(jsonFactory, StringReader(json))
+    }
   }
-
-  constructor(
-      applicationName: String,
-      clientSecretFile: java.io.File,
-      credentialsPath: java.io.File,
-      scopes: List<String>
-  ): this(
-      applicationName,
-      readSecrets(clientSecretFile),
-      FileDataStoreFactory(credentialsPath),
-      scopes
-  )
-
-  // TODO: GDriverBuilder
-  constructor(
-      applicationName: String,
-      clientSecrets: ByteArray,
-      dataStoreFactory: DataStoreFactory,
-      scopes: List<String>
-  ): this(
-      applicationName,
-      readSecrets(clientSecrets),
-      dataStoreFactory,
-      scopes
-  )
 
   /*
    * Global instance of the scopes required by this quickstart.

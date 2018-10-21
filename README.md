@@ -95,6 +95,7 @@ java -jar driveup-1.0-all.jar upload --encryption-recipient you@example.com --lo
 * Written in the [Kotlin](https://kotlinlang.org/) programming language
 * Uses [Google Drive API/SDK](https://developers.google.com/drive/)
 * Uses [BouncyGPG](https://github.com/neuhalje/bouncy-gpg) (and [BouncyCastle](https://bouncycastle.org/)) for GPG/PGP encryption
+* Local data saved with [Protocol Buffers](https://developers.google.com/protocol-buffers/)
 * Uses [Clikt](https://ajalt.github.io/clikt/) command-line parsing library
 * The project is built with the [Gradle](https://gradle.org/) build tool
 * Code is maintained with the [Git](https://git-scm.com/) revision control system
@@ -128,6 +129,16 @@ While uploading a batch of files, a `java.net.SocketTimeoutException` was thrown
 In this particular case, DriveUp could be run again, and resumed where it left off with no further error recovery needed.
 
 Speculatively, the Google Drive API/SDK will discard any failed partial upload (eg, rather than including the partial file in your Drive).
+
+## Development
+
+DriveUp uses [Protocol Buffers](https://developers.google.com/protocol-buffers/) to save local user data (configuration and Google OAuth credentials) to a file (see `init` command). The format of this save file is defined in `creds.proto`. If these definitions change, they must be recompiled by `protoc`:
+
+> protoc --proto_path=src/main/proto/ --java_out=src/main/kotlin src/main/proto/*.proto
+
+This generates Java source files, which the DriveUp code depends on.
+
+> TODO: Use the [Protocol Buffer Gradle Plugin](https://github.com/google/protobuf-gradle-plugin) to make protobuf compiling implicit.
 
 ## FAQ
 

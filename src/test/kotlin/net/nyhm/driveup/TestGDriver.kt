@@ -17,11 +17,12 @@ class TestGDriver {
     private val UPLOAD_PATH = listOf("test-root", "test-level-1", "test-level-2")
   }
 
+  // TODO: Update this test; this no longer works as it did before...
   private val driver by lazy {
     GDriver(
         "TestApp",
-        File("credentials", "client_secret.json"),
-        File("credentials"),
+        GDriver.readSecrets(File("credentials", "client_secret.json")),
+        CredsStoreFactory(),
         listOf(DriveScopes.DRIVE_FILE) // TODO: only needed if establishing creds?
         //
         // Changing scopes, but using old StoredCredential file seems to use scopes granted to prior creds.
