@@ -10,6 +10,7 @@ import com.github.ajalt.clikt.parameters.types.choice
 import com.github.ajalt.clikt.parameters.types.file
 import com.github.ajalt.clikt.parameters.types.int
 import com.google.api.services.drive.DriveScopes
+import com.google.protobuf.util.JsonFormat
 import net.nyhm.driveup.proto.AppConfig
 import java.io.*
 import java.util.zip.GZIPInputStream
@@ -24,7 +25,7 @@ fun main(args: Array<String>) = DriveUp()
       help = "Show the version and exit",
       message = { "DriveUp v$it" }
     ).subcommands(
-      Init(), ListRemote(), Upload()
+      Init(), Json(), ListRemote(), Upload()
     ).main(args)
 
 // TODO: Migrate this into creds.proto AppConfig (needed after init?)
@@ -147,16 +148,28 @@ class Init: CliktCommand(
       throw PrintMessage(error)
     }
 
+    val config = AppConfig.newBuilder()
+        .setVersion(CONFIG_VERSION)
+        .setAppName(appName)
+        .setClientSecrets(clientSecret.readText())
+        .putAllCredsStore(credsStore)
+        .setGpgData(gpgData)
+        .build()
+
     BufferedOutputStream(GZIPOutputStream(FileOutputStream(output))).use { out ->
-      AppConfig.newBuilder()
-          .setVersion(CONFIG_VERSION)
-          .setAppName(appName)
-          .setClientSecrets(clientSecret.readText())
-          .putAllCredsStore(credsStore)
-          .setGpgData(gpgData)
-          .build()
-          .writeTo(out)
+        config.writeTo(out)
     }
+  }
+}
+
+class Json: CliktCommand(
+    help = "Print a config file as JSON"
+) {
+
+  private val config: AppConfig by requireObject()
+
+  override fun run() {
+    echo(JsonFormat.printer().print(config))
   }
 }
 
