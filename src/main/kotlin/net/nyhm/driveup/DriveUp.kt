@@ -1,36 +1,98 @@
 package net.nyhm.driveup
 
 import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.core.PrintMessage
 import com.github.ajalt.clikt.core.requireObject
 import com.github.ajalt.clikt.core.subcommands
 import com.github.ajalt.clikt.output.TermUi.echo
 import com.github.ajalt.clikt.parameters.options.*
+import com.github.ajalt.clikt.parameters.types.choice
 import com.github.ajalt.clikt.parameters.types.file
 import com.github.ajalt.clikt.parameters.types.int
+import com.google.api.client.util.store.MemoryDataStoreFactory
 import com.google.api.services.drive.DriveScopes
-import java.io.File
-import java.io.FileFilter
+import java.io.*
+import java.util.jar.JarEntry
+import java.util.jar.JarInputStream
+import java.util.jar.JarOutputStream
+import java.util.zip.GZIPInputStream
+import java.util.zip.GZIPOutputStream
 
-data class Config(
-    val appName: String,
-    val credentialsPath: File,
-    val clientSecret: File
-)
-
+/**
+ * Main entry point
+ */
 fun main(args: Array<String>) = DriveUp()
     .versionOption(
       version = Version.version,
       help = "Show the version and exit",
       message = { "DriveUp v$it" }
     ).subcommands(
-      ListRemote(), Upload()
+      Init(), ListRemote(), Upload()
     ).main(args)
 
-/**
- * Main command-line executable (application entry point)
- */
-class DriveUp: CliktCommand(
-    help = "Send files to Google Drive"
+enum class Access(val scope: String) {
+  FULL(DriveScopes.DRIVE),
+  PATH(DriveScopes.DRIVE_FILE),
+  READ(DriveScopes.DRIVE_READONLY)
+}
+
+const val CONFIG_VERSION = 1
+
+class AppConfig(
+    val appName: String,
+    val clientSecret: ByteArray,
+    val credsStore: ByteArray,
+    val gpgConfig: GpgConfig
+) {
+
+  fun export(): ByteArray {
+    val bytes = ByteArrayOutputStream()
+    DataOutputStream(bytes).use { out ->
+      out.writeInt(VERSION)
+      out.writeInt(appName.length) // char count (not byte count)
+      out.writeChars(appName)
+      out.writeInt(clientSecret.size); println("clentSecret ${clientSecret.size}")
+      out.write(clientSecret)
+      out.writeInt(credsStore.size); println("credsStore ${credsStore.size}")
+      out.write(credsStore)
+      val gpg = gpgConfig.export()
+      out.writeInt(gpg.size); println("gpg ${gpg.size}")
+      out.write(gpg)
+    }
+    return bytes.toByteArray()
+  }
+
+  companion object {
+    private const val VERSION = 1
+
+    fun fromBytes(bytes: ByteArray) =
+      DataInputStream(ByteArrayInputStream(bytes)).use {
+        val ver = it.readInt()
+        if (ver != VERSION) throw java.lang.IllegalArgumentException("Unexpected version $ver")
+
+        var appName = ""
+        val chars = it.readInt() // char count (not byte count)
+        for (i in 0 until chars) appName += it.readChar()
+
+        val clientSecret = ByteArray(it.readInt())
+        it.readFully(clientSecret)
+        println("clientSecret ${clientSecret.size}")
+
+        val credsStore = ByteArray(it.readInt())
+        it.readFully(credsStore)
+        println("credsStore ${credsStore.size}")
+
+        val gpg = ByteArray(it.readInt())
+        it.readFully(gpg)
+        println("gpg ${gpg.size}")
+
+        AppConfig(appName, clientSecret, credsStore, GpgConfig.fromBytes(gpg))
+      }
+  }
+}
+
+class Init: CliktCommand(
+    help = "Init DriveUp connection"
 ) {
 
   val appName by option(
@@ -38,19 +100,6 @@ class DriveUp: CliktCommand(
       help = "Application name (arbitrary)"
   ).default(
       "DriveUp"
-  )
-
-  val credentialsPath by option(
-      "--credentials-path",
-      help = "Path to stored user credentials"
-  ).file(
-      exists = false,
-      fileOkay = false,
-      folderOkay = true,
-      writable = true,
-      readable = true
-  ).default(
-      File("credentials")
   )
 
   val clientSecret by option(
@@ -62,13 +111,145 @@ class DriveUp: CliktCommand(
       folderOkay = false,
       writable = false,
       readable = true
+  ).required()
+  /*.default(
+      File("client_secret.json")
+  )*/
+
+  val publicKey by option(
+      "--public-key",
+      help = "GPG/PGP public key file"
+  ).file(
+      exists = true,
+      fileOkay = true,
+      folderOkay = false,
+      writable = false,
+      readable = true
+  ).required() // TODO: allow non-encrypted config
+
+  val encryptionRecipient by option(
+      "--encryption-recipient",
+      help = "GPG/PGP recipient identifier (eg, email address)"
+  ).required() // TODO: allow non-encrypted config
+
+  val access: Access by option(
+      "--access",
+      help = "Drive access level"
+  ).choice(
+      Access.values().associateBy { it.name.toLowerCase() }
+  ).default(Access.PATH)
+
+  val output by option(
+      "--output", "-o",
+      help = "Save config to this file"
+  ).file(
+      exists = false,
+      writable = true
   ).default(
-      File("credentials","client_secret.json")
+      File("driveup.creds")
+  )
+
+  val overwrite by option(
+      "--overwrite",
+      help = "Overwrite any existing output file"
+  ).flag(
+      default = false
   )
 
   override fun run() {
-    // provide this to subcommands
-    context.obj = Config(appName, credentialsPath, clientSecret)
+
+    // .file(exists = false) means 'do not test for existence'
+    if (output.exists() && !overwrite) {
+      throw PrintMessage("Output file already exists: $output")
+    }
+
+    val gpgConfig = try {
+      val gpgConfig = GpgConfig.fromFile(
+          publicKey.toPath(),
+          encryptionRecipient
+      )
+      GpgEncryptor(gpgConfig).encrypt("Test source".byteInputStream())
+      GpgConfig.fromBytes(gpgConfig.export()) // sanity check that export is functional
+    } catch (e: Exception) {
+      throw PrintMessage("Encryption config failed") // TODO: be more helpful
+    }
+
+    val credsStore = try {
+
+      val driver = GDriver(
+          appName,
+          clientSecret.readBytes(),
+          CredsStoreFactory,
+          listOf(access.scope)
+      )
+
+      driver.remoteDirs()
+      //
+      // TODO: just call something for quicker info (metadata?)
+      // Or, be more comprehensive (create & delete a test path & file), depending on Access level
+
+      val bytes = CredsStoreFactory.export()
+      CredsStoreFactory.restore(bytes) // sanity check that export is functional
+      bytes
+
+    } catch (e: IOException) {
+      var error = e.message ?: "Error accessing Drive"
+      if (error.contains("access_denied")) error = "Access denied to Drive"
+      throw PrintMessage(error)
+    }
+
+    val config = AppConfig(appName, clientSecret.readBytes(), credsStore, gpgConfig).export()
+    println("write bytes ${config.size}")
+    AppConfig.fromBytes(config) // sanity check
+
+    DataOutputStream(BufferedOutputStream(GZIPOutputStream(FileOutputStream(output)))).use { out ->
+      out.writeInt(CONFIG_VERSION)
+      out.writeInt(config.size)
+      out.write(config)
+    }
+  }
+}
+
+/**
+ * Main command-line executable (application entry point)
+ */
+class DriveUp: CliktCommand(
+    help = "Send files to Google Drive"
+) {
+
+  val configFile by option(
+      "--config",
+      help = "Path to credentials file (created with init)"
+  ).file(
+      exists = true,
+      fileOkay = true,
+      folderOkay = false,
+      readable = true
+  ).default(
+      File("driveup.creds")
+  )
+
+  override fun run() {
+    // init creates config
+    if (context.invokedSubcommand !is Init) {
+      try {
+        // provide AppConfig to subcommands
+        val bytes = DataInputStream(GZIPInputStream(FileInputStream(configFile))).use {
+          val ver = it.readInt()
+          if (ver != CONFIG_VERSION) throw PrintMessage("Invalid config version $ver")
+          val bytes = ByteArray(it.readInt())
+          it.readFully(bytes)
+          bytes
+        }
+        println("read bytes ${bytes.size}")
+        context.obj = AppConfig.fromBytes(bytes)
+      } catch (e: Exception) {
+        e.printStackTrace()
+        var msg = "Unable to load $configFile"
+        if (e.message != null) msg += ": " + e.message
+        throw PrintMessage(msg)
+      }
+    }
   }
 }
 
@@ -77,15 +258,17 @@ class ListRemote: CliktCommand(
     help = "List remote files (that are accessible to credentials)"
 ) {
 
-  val config: Config by requireObject()
+  private val config: AppConfig by requireObject()
 
   override fun run() {
+
+    CredsStoreFactory.restore(config.credsStore)
 
     val driver = GDriver(
         config.appName,
         config.clientSecret,
-        config.credentialsPath,
-        listOf(DriveScopes.DRIVE_FILE)
+        CredsStoreFactory,
+        listOf(DriveScopes.DRIVE_READONLY)
     )
 
     driver.remoteFiles().forEach {
@@ -97,15 +280,6 @@ class ListRemote: CliktCommand(
 class Upload: CliktCommand(
     help = "Encrypt and upload files"
 ) {
-
-  // TODO: Explicit auth step (not just side-effect of not finding credentials)
-  /*
-  val auth by option(
-      "--auth", "--authenticate",
-      help="Perform OAuth authentication"
-  ).flag(default = false)
-  */
-
   // TODO: Encryption optional
   /*
   val noEncryption by option(
@@ -113,28 +287,6 @@ class Upload: CliktCommand(
       help = "Do not use encryption"
   ).flag(default = false)
   */
-
-  val publicKey by option(
-      "--public-key",
-      help = "GPG/PGP public key file"
-  ).file(
-      exists = true,
-      fileOkay = true,
-      folderOkay = false,
-      writable = false,
-      readable = true
-  ).default(
-      File("credentials", "public_key.asc")
-  )
-
-  val encryptionRecipient by option(
-      "--encryption-recipient",
-      help = "GPG/PGP recipient identifier (eg, email address)"
-  )
-  .required() // TODO: only if not justCheck or noEncryption
-  //.validate {
-  //  require(!noEncryption || it.isNotEmpty()) // this does not work
-  //}
 
   val remoteRoot by option(
       "--remote-root",
@@ -188,7 +340,7 @@ class Upload: CliktCommand(
   ).flag(default = false)
   */
 
-  val config: Config by requireObject()
+  val config: AppConfig by requireObject()
 
   override fun run() {
 
@@ -204,15 +356,21 @@ class Upload: CliktCommand(
       )
     }
     */
+    /*
     val encryptor = GpgEncryptor(
         publicKey.toPath(),
         encryptionRecipient
     )
+    */
+    val encryptor = NonEncryptor
+    val remoteRoot = "TEST"
+
+    CredsStoreFactory.restore(config.credsStore)
 
     val driver = GDriver(
         config.appName,
         config.clientSecret,
-        config.credentialsPath,
+        CredsStoreFactory,
         listOf(DriveScopes.DRIVE_FILE)
     )
 
