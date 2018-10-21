@@ -1,11 +1,15 @@
 package net.nyhm.driveup
 
+import com.google.protobuf.ByteString
 import name.neuhalfen.projects.crypto.bouncycastle.openpgp.BouncyGPG
 import name.neuhalfen.projects.crypto.bouncycastle.openpgp.keys.keyrings.KeyringConfigs
+import net.nyhm.driveup.proto.GpgData
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.util.io.Streams
-import java.io.*
-import java.nio.file.Files
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.InputStream
 import java.nio.file.Path
 import java.security.Security
 
@@ -35,46 +39,27 @@ class GpgConfig private constructor(
       .forGpgExportedKeys { _ -> null }
       .also { it.addPublicKey(publicKey) }
 
-  fun export(): ByteArray {
-    val bytes = ByteArrayOutputStream()
-    DataOutputStream(bytes).use { out ->
-      out.writeInt(VERSION)
-      out.writeInt(publicKey.size)
-      out.write(publicKey)
-      out.writeInt(recipient.length) // char count (not byte count)
-      out.writeChars(recipient)
-    }
-    return bytes.toByteArray()
-  }
+  fun export(): GpgData = GpgData.newBuilder()
+      .setPublicKey(ByteString.copyFrom(publicKey))
+      .setRecipient(recipient)
+      .build()
 
   companion object {
-    private const val VERSION = 1
-
     private fun initProvider() {
       if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
         Security.addProvider(BouncyCastleProvider())
       }
     }
 
-    fun fromFile(publicKeyFile: Path, recipient: String): GpgConfig {
-      val publicKey = Files.readAllBytes(publicKeyFile)
-      return GpgConfig(publicKey, recipient)
-    }
+    fun fromFile(publicKeyFile: Path, recipient: String) = GpgConfig(
+        publicKeyFile.toFile().readBytes(),
+        recipient
+    )
 
-    fun fromBytes(bytes: ByteArray): GpgConfig {
-      DataInputStream(ByteArrayInputStream(bytes)).use { data ->
-        val ver = data.readInt()
-        if (ver != VERSION) throw IllegalArgumentException("Unexpected version $ver, expected $VERSION")
-        val publicKey = ByteArray(data.readInt())
-        data.readFully(publicKey)
-        val recipientLen = data.readInt() // char count (not byte count)
-        var recipient = ""
-        for (i in 0 until recipientLen) {
-          recipient += data.readChar()
-        }
-        return GpgConfig(publicKey, recipient)
-      }
-    }
+    fun fromData(data: GpgData) = GpgConfig(
+        data.publicKey.toByteArray(),
+        data.recipient
+    )
   }
 }
 

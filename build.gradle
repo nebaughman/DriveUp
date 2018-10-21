@@ -25,6 +25,7 @@ dependencies {
     compile 'org.bouncycastle:bcpg-jdk15on:1.59'
     compile 'name.neuhalfen.projects.crypto.bouncycastle.openpgp:bouncy-gpg:2.+'
     compile 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
+    compile 'com.google.protobuf:protobuf-java:3.6.1'
     testCompile group: 'junit', name: 'junit', version: '4.12'
 }
 

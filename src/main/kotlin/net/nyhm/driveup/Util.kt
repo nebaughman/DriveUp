@@ -1,5 +1,8 @@
 package net.nyhm.driveup
 
+import java.io.ByteArrayOutputStream
+import java.io.ObjectOutputStream
+import java.io.Serializable
 import java.util.*
 import java.util.concurrent.TimeUnit
 
@@ -67,4 +70,15 @@ object Version {
     props.load(javaClass.getResource("/version.properties").openStream())
     props["version"] as String
   }
+}
+
+/**
+ * Use an ObjectOutputStream to serialize to a ByteArray
+ */
+fun Serializable.serialize(): ByteArray {
+  val baos = ByteArrayOutputStream()
+  ObjectOutputStream(baos).use {
+    it.writeObject(this)
+  }
+  return baos.toByteArray()
 }
