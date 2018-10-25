@@ -18,7 +18,8 @@ private static final long serialVersionUID = 0L;
   private AppConfig() {
     version_ = 0;
     appName_ = "";
-    clientSecrets_ = "";
+    clientSecrets_ = com.google.protobuf.ByteString.EMPTY;
+    access_ = 0;
   }
 
   @java.lang.Override
@@ -57,16 +58,21 @@ private static final long serialVersionUID = 0L;
             break;
           }
           case 26: {
-            java.lang.String s = input.readStringRequireUtf8();
 
-            clientSecrets_ = s;
+            clientSecrets_ = input.readBytes();
             break;
           }
-          case 34: {
-            if (!((mutable_bitField0_ & 0x00000008) == 0x00000008)) {
+          case 32: {
+            int rawValue = input.readEnum();
+
+            access_ = rawValue;
+            break;
+          }
+          case 42: {
+            if (!((mutable_bitField0_ & 0x00000010) == 0x00000010)) {
               credsStore_ = com.google.protobuf.MapField.newMapField(
                   CredsStoreDefaultEntryHolder.defaultEntry);
-              mutable_bitField0_ |= 0x00000008;
+              mutable_bitField0_ |= 0x00000010;
             }
             com.google.protobuf.MapEntry<java.lang.String, net.nyhm.driveup.proto.CredsData>
             credsStore__ = input.readMessage(
@@ -75,7 +81,7 @@ private static final long serialVersionUID = 0L;
                 credsStore__.getKey(), credsStore__.getValue());
             break;
           }
-          case 42: {
+          case 50: {
             net.nyhm.driveup.proto.GpgData.Builder subBuilder = null;
             if (gpgData_ != null) {
               subBuilder = gpgData_.toBuilder();
@@ -117,7 +123,7 @@ private static final long serialVersionUID = 0L;
   protected com.google.protobuf.MapField internalGetMapField(
       int number) {
     switch (number) {
-      case 4:
+      case 5:
         return internalGetCredsStore();
       default:
         throw new RuntimeException(
@@ -177,40 +183,32 @@ private static final long serialVersionUID = 0L;
   }
 
   public static final int CLIENT_SECRETS_FIELD_NUMBER = 3;
-  private volatile java.lang.Object clientSecrets_;
+  private com.google.protobuf.ByteString clientSecrets_;
   /**
-   * <code>string client_secrets = 3;</code>
+   * <code>bytes client_secrets = 3;</code>
    */
-  public java.lang.String getClientSecrets() {
-    java.lang.Object ref = clientSecrets_;
-    if (ref instanceof java.lang.String) {
-      return (java.lang.String) ref;
-    } else {
-      com.google.protobuf.ByteString bs = 
-          (com.google.protobuf.ByteString) ref;
-      java.lang.String s = bs.toStringUtf8();
-      clientSecrets_ = s;
-      return s;
-    }
-  }
-  /**
-   * <code>string client_secrets = 3;</code>
-   */
-  public com.google.protobuf.ByteString
-      getClientSecretsBytes() {
-    java.lang.Object ref = clientSecrets_;
-    if (ref instanceof java.lang.String) {
-      com.google.protobuf.ByteString b = 
-          com.google.protobuf.ByteString.copyFromUtf8(
-              (java.lang.String) ref);
-      clientSecrets_ = b;
-      return b;
-    } else {
-      return (com.google.protobuf.ByteString) ref;
-    }
+  public com.google.protobuf.ByteString getClientSecrets() {
+    return clientSecrets_;
   }
 
-  public static final int CREDS_STORE_FIELD_NUMBER = 4;
+  public static final int ACCESS_FIELD_NUMBER = 4;
+  private int access_;
+  /**
+   * <code>.net.nyhm.driveup.proto.Access access = 4;</code>
+   */
+  public int getAccessValue() {
+    return access_;
+  }
+  /**
+   * <code>.net.nyhm.driveup.proto.Access access = 4;</code>
+   */
+  public net.nyhm.driveup.proto.Access getAccess() {
+    @SuppressWarnings("deprecation")
+    net.nyhm.driveup.proto.Access result = net.nyhm.driveup.proto.Access.valueOf(access_);
+    return result == null ? net.nyhm.driveup.proto.Access.UNRECOGNIZED : result;
+  }
+
+  public static final int CREDS_STORE_FIELD_NUMBER = 5;
   private static final class CredsStoreDefaultEntryHolder {
     static final com.google.protobuf.MapEntry<
         java.lang.String, net.nyhm.driveup.proto.CredsData> defaultEntry =
@@ -237,7 +235,7 @@ private static final long serialVersionUID = 0L;
     return internalGetCredsStore().getMap().size();
   }
   /**
-   * <code>map&lt;string, .net.nyhm.driveup.proto.CredsData&gt; creds_store = 4;</code>
+   * <code>map&lt;string, .net.nyhm.driveup.proto.CredsData&gt; creds_store = 5;</code>
    */
 
   public boolean containsCredsStore(
@@ -253,14 +251,14 @@ private static final long serialVersionUID = 0L;
     return getCredsStoreMap();
   }
   /**
-   * <code>map&lt;string, .net.nyhm.driveup.proto.CredsData&gt; creds_store = 4;</code>
+   * <code>map&lt;string, .net.nyhm.driveup.proto.CredsData&gt; creds_store = 5;</code>
    */
 
   public java.util.Map<java.lang.String, net.nyhm.driveup.proto.CredsData> getCredsStoreMap() {
     return internalGetCredsStore().getMap();
   }
   /**
-   * <code>map&lt;string, .net.nyhm.driveup.proto.CredsData&gt; creds_store = 4;</code>
+   * <code>map&lt;string, .net.nyhm.driveup.proto.CredsData&gt; creds_store = 5;</code>
    */
 
   public net.nyhm.driveup.proto.CredsData getCredsStoreOrDefault(
@@ -272,7 +270,7 @@ private static final long serialVersionUID = 0L;
     return map.containsKey(key) ? map.get(key) : defaultValue;
   }
   /**
-   * <code>map&lt;string, .net.nyhm.driveup.proto.CredsData&gt; creds_store = 4;</code>
+   * <code>map&lt;string, .net.nyhm.driveup.proto.CredsData&gt; creds_store = 5;</code>
    */
 
   public net.nyhm.driveup.proto.CredsData getCredsStoreOrThrow(
@@ -286,22 +284,22 @@ private static final long serialVersionUID = 0L;
     return map.get(key);
   }
 
-  public static final int GPG_DATA_FIELD_NUMBER = 5;
+  public static final int GPG_DATA_FIELD_NUMBER = 6;
   private net.nyhm.driveup.proto.GpgData gpgData_;
   /**
-   * <code>.net.nyhm.driveup.proto.GpgData gpg_data = 5;</code>
+   * <code>.net.nyhm.driveup.proto.GpgData gpg_data = 6;</code>
    */
   public boolean hasGpgData() {
     return gpgData_ != null;
   }
   /**
-   * <code>.net.nyhm.driveup.proto.GpgData gpg_data = 5;</code>
+   * <code>.net.nyhm.driveup.proto.GpgData gpg_data = 6;</code>
    */
   public net.nyhm.driveup.proto.GpgData getGpgData() {
     return gpgData_ == null ? net.nyhm.driveup.proto.GpgData.getDefaultInstance() : gpgData_;
   }
   /**
-   * <code>.net.nyhm.driveup.proto.GpgData gpg_data = 5;</code>
+   * <code>.net.nyhm.driveup.proto.GpgData gpg_data = 6;</code>
    */
   public net.nyhm.driveup.proto.GpgDataOrBuilder getGpgDataOrBuilder() {
     return getGpgData();
@@ -327,17 +325,20 @@ private static final long serialVersionUID = 0L;
     if (!getAppNameBytes().isEmpty()) {
       com.google.protobuf.GeneratedMessageV3.writeString(output, 2, appName_);
     }
-    if (!getClientSecretsBytes().isEmpty()) {
-      com.google.protobuf.GeneratedMessageV3.writeString(output, 3, clientSecrets_);
+    if (!clientSecrets_.isEmpty()) {
+      output.writeBytes(3, clientSecrets_);
+    }
+    if (access_ != net.nyhm.driveup.proto.Access.READ.getNumber()) {
+      output.writeEnum(4, access_);
     }
     com.google.protobuf.GeneratedMessageV3
       .serializeStringMapTo(
         output,
         internalGetCredsStore(),
         CredsStoreDefaultEntryHolder.defaultEntry,
-        4);
+        5);
     if (gpgData_ != null) {
-      output.writeMessage(5, getGpgData());
+      output.writeMessage(6, getGpgData());
     }
     unknownFields.writeTo(output);
   }
@@ -355,8 +356,13 @@ private static final long serialVersionUID = 0L;
     if (!getAppNameBytes().isEmpty()) {
       size += com.google.protobuf.GeneratedMessageV3.computeStringSize(2, appName_);
     }
-    if (!getClientSecretsBytes().isEmpty()) {
-      size += com.google.protobuf.GeneratedMessageV3.computeStringSize(3, clientSecrets_);
+    if (!clientSecrets_.isEmpty()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeBytesSize(3, clientSecrets_);
+    }
+    if (access_ != net.nyhm.driveup.proto.Access.READ.getNumber()) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeEnumSize(4, access_);
     }
     for (java.util.Map.Entry<java.lang.String, net.nyhm.driveup.proto.CredsData> entry
          : internalGetCredsStore().getMap().entrySet()) {
@@ -366,11 +372,11 @@ private static final long serialVersionUID = 0L;
           .setValue(entry.getValue())
           .build();
       size += com.google.protobuf.CodedOutputStream
-          .computeMessageSize(4, credsStore__);
+          .computeMessageSize(5, credsStore__);
     }
     if (gpgData_ != null) {
       size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(5, getGpgData());
+        .computeMessageSize(6, getGpgData());
     }
     size += unknownFields.getSerializedSize();
     memoizedSize = size;
@@ -394,6 +400,7 @@ private static final long serialVersionUID = 0L;
         .equals(other.getAppName());
     result = result && getClientSecrets()
         .equals(other.getClientSecrets());
+    result = result && access_ == other.access_;
     result = result && internalGetCredsStore().equals(
         other.internalGetCredsStore());
     result = result && (hasGpgData() == other.hasGpgData());
@@ -418,6 +425,8 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getAppName().hashCode();
     hash = (37 * hash) + CLIENT_SECRETS_FIELD_NUMBER;
     hash = (53 * hash) + getClientSecrets().hashCode();
+    hash = (37 * hash) + ACCESS_FIELD_NUMBER;
+    hash = (53 * hash) + access_;
     if (!internalGetCredsStore().getMap().isEmpty()) {
       hash = (37 * hash) + CREDS_STORE_FIELD_NUMBER;
       hash = (53 * hash) + internalGetCredsStore().hashCode();
@@ -537,7 +546,7 @@ private static final long serialVersionUID = 0L;
     protected com.google.protobuf.MapField internalGetMapField(
         int number) {
       switch (number) {
-        case 4:
+        case 5:
           return internalGetCredsStore();
         default:
           throw new RuntimeException(
@@ -548,7 +557,7 @@ private static final long serialVersionUID = 0L;
     protected com.google.protobuf.MapField internalGetMutableMapField(
         int number) {
       switch (number) {
-        case 4:
+        case 5:
           return internalGetMutableCredsStore();
         default:
           throw new RuntimeException(
@@ -585,7 +594,9 @@ private static final long serialVersionUID = 0L;
 
       appName_ = "";
 
-      clientSecrets_ = "";
+      clientSecrets_ = com.google.protobuf.ByteString.EMPTY;
+
+      access_ = 0;
 
       internalGetMutableCredsStore().clear();
       if (gpgDataBuilder_ == null) {
@@ -625,6 +636,7 @@ private static final long serialVersionUID = 0L;
       result.version_ = version_;
       result.appName_ = appName_;
       result.clientSecrets_ = clientSecrets_;
+      result.access_ = access_;
       result.credsStore_ = internalGetCredsStore();
       result.credsStore_.makeImmutable();
       if (gpgDataBuilder_ == null) {
@@ -688,9 +700,11 @@ private static final long serialVersionUID = 0L;
         appName_ = other.appName_;
         onChanged();
       }
-      if (!other.getClientSecrets().isEmpty()) {
-        clientSecrets_ = other.clientSecrets_;
-        onChanged();
+      if (other.getClientSecrets() != com.google.protobuf.ByteString.EMPTY) {
+        setClientSecrets(other.getClientSecrets());
+      }
+      if (other.access_ != 0) {
+        setAccessValue(other.getAccessValue());
       }
       internalGetMutableCredsStore().mergeFrom(
           other.internalGetCredsStore());
@@ -822,43 +836,17 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private java.lang.Object clientSecrets_ = "";
+    private com.google.protobuf.ByteString clientSecrets_ = com.google.protobuf.ByteString.EMPTY;
     /**
-     * <code>string client_secrets = 3;</code>
+     * <code>bytes client_secrets = 3;</code>
      */
-    public java.lang.String getClientSecrets() {
-      java.lang.Object ref = clientSecrets_;
-      if (!(ref instanceof java.lang.String)) {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        clientSecrets_ = s;
-        return s;
-      } else {
-        return (java.lang.String) ref;
-      }
+    public com.google.protobuf.ByteString getClientSecrets() {
+      return clientSecrets_;
     }
     /**
-     * <code>string client_secrets = 3;</code>
+     * <code>bytes client_secrets = 3;</code>
      */
-    public com.google.protobuf.ByteString
-        getClientSecretsBytes() {
-      java.lang.Object ref = clientSecrets_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        clientSecrets_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-    /**
-     * <code>string client_secrets = 3;</code>
-     */
-    public Builder setClientSecrets(
-        java.lang.String value) {
+    public Builder setClientSecrets(com.google.protobuf.ByteString value) {
       if (value == null) {
     throw new NullPointerException();
   }
@@ -868,7 +856,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>string client_secrets = 3;</code>
+     * <code>bytes client_secrets = 3;</code>
      */
     public Builder clearClientSecrets() {
       
@@ -876,17 +864,48 @@ private static final long serialVersionUID = 0L;
       onChanged();
       return this;
     }
+
+    private int access_ = 0;
     /**
-     * <code>string client_secrets = 3;</code>
+     * <code>.net.nyhm.driveup.proto.Access access = 4;</code>
      */
-    public Builder setClientSecretsBytes(
-        com.google.protobuf.ByteString value) {
+    public int getAccessValue() {
+      return access_;
+    }
+    /**
+     * <code>.net.nyhm.driveup.proto.Access access = 4;</code>
+     */
+    public Builder setAccessValue(int value) {
+      access_ = value;
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>.net.nyhm.driveup.proto.Access access = 4;</code>
+     */
+    public net.nyhm.driveup.proto.Access getAccess() {
+      @SuppressWarnings("deprecation")
+      net.nyhm.driveup.proto.Access result = net.nyhm.driveup.proto.Access.valueOf(access_);
+      return result == null ? net.nyhm.driveup.proto.Access.UNRECOGNIZED : result;
+    }
+    /**
+     * <code>.net.nyhm.driveup.proto.Access access = 4;</code>
+     */
+    public Builder setAccess(net.nyhm.driveup.proto.Access value) {
       if (value == null) {
-    throw new NullPointerException();
-  }
-  checkByteStringIsUtf8(value);
+        throw new NullPointerException();
+      }
       
-      clientSecrets_ = value;
+      access_ = value.getNumber();
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>.net.nyhm.driveup.proto.Access access = 4;</code>
+     */
+    public Builder clearAccess() {
+      
+      access_ = 0;
       onChanged();
       return this;
     }
@@ -918,7 +937,7 @@ private static final long serialVersionUID = 0L;
       return internalGetCredsStore().getMap().size();
     }
     /**
-     * <code>map&lt;string, .net.nyhm.driveup.proto.CredsData&gt; creds_store = 4;</code>
+     * <code>map&lt;string, .net.nyhm.driveup.proto.CredsData&gt; creds_store = 5;</code>
      */
 
     public boolean containsCredsStore(
@@ -934,14 +953,14 @@ private static final long serialVersionUID = 0L;
       return getCredsStoreMap();
     }
     /**
-     * <code>map&lt;string, .net.nyhm.driveup.proto.CredsData&gt; creds_store = 4;</code>
+     * <code>map&lt;string, .net.nyhm.driveup.proto.CredsData&gt; creds_store = 5;</code>
      */
 
     public java.util.Map<java.lang.String, net.nyhm.driveup.proto.CredsData> getCredsStoreMap() {
       return internalGetCredsStore().getMap();
     }
     /**
-     * <code>map&lt;string, .net.nyhm.driveup.proto.CredsData&gt; creds_store = 4;</code>
+     * <code>map&lt;string, .net.nyhm.driveup.proto.CredsData&gt; creds_store = 5;</code>
      */
 
     public net.nyhm.driveup.proto.CredsData getCredsStoreOrDefault(
@@ -953,7 +972,7 @@ private static final long serialVersionUID = 0L;
       return map.containsKey(key) ? map.get(key) : defaultValue;
     }
     /**
-     * <code>map&lt;string, .net.nyhm.driveup.proto.CredsData&gt; creds_store = 4;</code>
+     * <code>map&lt;string, .net.nyhm.driveup.proto.CredsData&gt; creds_store = 5;</code>
      */
 
     public net.nyhm.driveup.proto.CredsData getCredsStoreOrThrow(
@@ -973,7 +992,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>map&lt;string, .net.nyhm.driveup.proto.CredsData&gt; creds_store = 4;</code>
+     * <code>map&lt;string, .net.nyhm.driveup.proto.CredsData&gt; creds_store = 5;</code>
      */
 
     public Builder removeCredsStore(
@@ -992,7 +1011,7 @@ private static final long serialVersionUID = 0L;
       return internalGetMutableCredsStore().getMutableMap();
     }
     /**
-     * <code>map&lt;string, .net.nyhm.driveup.proto.CredsData&gt; creds_store = 4;</code>
+     * <code>map&lt;string, .net.nyhm.driveup.proto.CredsData&gt; creds_store = 5;</code>
      */
     public Builder putCredsStore(
         java.lang.String key,
@@ -1004,7 +1023,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>map&lt;string, .net.nyhm.driveup.proto.CredsData&gt; creds_store = 4;</code>
+     * <code>map&lt;string, .net.nyhm.driveup.proto.CredsData&gt; creds_store = 5;</code>
      */
 
     public Builder putAllCredsStore(
@@ -1018,13 +1037,13 @@ private static final long serialVersionUID = 0L;
     private com.google.protobuf.SingleFieldBuilderV3<
         net.nyhm.driveup.proto.GpgData, net.nyhm.driveup.proto.GpgData.Builder, net.nyhm.driveup.proto.GpgDataOrBuilder> gpgDataBuilder_;
     /**
-     * <code>.net.nyhm.driveup.proto.GpgData gpg_data = 5;</code>
+     * <code>.net.nyhm.driveup.proto.GpgData gpg_data = 6;</code>
      */
     public boolean hasGpgData() {
       return gpgDataBuilder_ != null || gpgData_ != null;
     }
     /**
-     * <code>.net.nyhm.driveup.proto.GpgData gpg_data = 5;</code>
+     * <code>.net.nyhm.driveup.proto.GpgData gpg_data = 6;</code>
      */
     public net.nyhm.driveup.proto.GpgData getGpgData() {
       if (gpgDataBuilder_ == null) {
@@ -1034,7 +1053,7 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
-     * <code>.net.nyhm.driveup.proto.GpgData gpg_data = 5;</code>
+     * <code>.net.nyhm.driveup.proto.GpgData gpg_data = 6;</code>
      */
     public Builder setGpgData(net.nyhm.driveup.proto.GpgData value) {
       if (gpgDataBuilder_ == null) {
@@ -1050,7 +1069,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>.net.nyhm.driveup.proto.GpgData gpg_data = 5;</code>
+     * <code>.net.nyhm.driveup.proto.GpgData gpg_data = 6;</code>
      */
     public Builder setGpgData(
         net.nyhm.driveup.proto.GpgData.Builder builderForValue) {
@@ -1064,7 +1083,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>.net.nyhm.driveup.proto.GpgData gpg_data = 5;</code>
+     * <code>.net.nyhm.driveup.proto.GpgData gpg_data = 6;</code>
      */
     public Builder mergeGpgData(net.nyhm.driveup.proto.GpgData value) {
       if (gpgDataBuilder_ == null) {
@@ -1082,7 +1101,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>.net.nyhm.driveup.proto.GpgData gpg_data = 5;</code>
+     * <code>.net.nyhm.driveup.proto.GpgData gpg_data = 6;</code>
      */
     public Builder clearGpgData() {
       if (gpgDataBuilder_ == null) {
@@ -1096,7 +1115,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>.net.nyhm.driveup.proto.GpgData gpg_data = 5;</code>
+     * <code>.net.nyhm.driveup.proto.GpgData gpg_data = 6;</code>
      */
     public net.nyhm.driveup.proto.GpgData.Builder getGpgDataBuilder() {
       
@@ -1104,7 +1123,7 @@ private static final long serialVersionUID = 0L;
       return getGpgDataFieldBuilder().getBuilder();
     }
     /**
-     * <code>.net.nyhm.driveup.proto.GpgData gpg_data = 5;</code>
+     * <code>.net.nyhm.driveup.proto.GpgData gpg_data = 6;</code>
      */
     public net.nyhm.driveup.proto.GpgDataOrBuilder getGpgDataOrBuilder() {
       if (gpgDataBuilder_ != null) {
@@ -1115,7 +1134,7 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
-     * <code>.net.nyhm.driveup.proto.GpgData gpg_data = 5;</code>
+     * <code>.net.nyhm.driveup.proto.GpgData gpg_data = 6;</code>
      */
     private com.google.protobuf.SingleFieldBuilderV3<
         net.nyhm.driveup.proto.GpgData, net.nyhm.driveup.proto.GpgData.Builder, net.nyhm.driveup.proto.GpgDataOrBuilder> 
