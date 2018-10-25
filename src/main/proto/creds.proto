@@ -7,9 +7,16 @@ option java_multiple_files = true;
 message AppConfig {
     int32 version = 1;
     string app_name = 2;
-    string client_secrets = 3;
-    map<string,CredsData> creds_store = 4;
-    GpgData gpg_data = 5;
+    bytes client_secrets = 3;
+    Access access = 4;
+    map<string,CredsData> creds_store = 5;
+    GpgData gpg_data = 6;
+}
+
+enum Access {
+    READ = 0;
+    PATH = 1;
+    FULL = 2;
 }
 
 message CredsData {

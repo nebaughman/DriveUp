@@ -23,21 +23,25 @@ public interface AppConfigOrBuilder extends
       getAppNameBytes();
 
   /**
-   * <code>string client_secrets = 3;</code>
+   * <code>bytes client_secrets = 3;</code>
    */
-  java.lang.String getClientSecrets();
-  /**
-   * <code>string client_secrets = 3;</code>
-   */
-  com.google.protobuf.ByteString
-      getClientSecretsBytes();
+  com.google.protobuf.ByteString getClientSecrets();
 
   /**
-   * <code>map&lt;string, .net.nyhm.driveup.proto.CredsData&gt; creds_store = 4;</code>
+   * <code>.net.nyhm.driveup.proto.Access access = 4;</code>
+   */
+  int getAccessValue();
+  /**
+   * <code>.net.nyhm.driveup.proto.Access access = 4;</code>
+   */
+  net.nyhm.driveup.proto.Access getAccess();
+
+  /**
+   * <code>map&lt;string, .net.nyhm.driveup.proto.CredsData&gt; creds_store = 5;</code>
    */
   int getCredsStoreCount();
   /**
-   * <code>map&lt;string, .net.nyhm.driveup.proto.CredsData&gt; creds_store = 4;</code>
+   * <code>map&lt;string, .net.nyhm.driveup.proto.CredsData&gt; creds_store = 5;</code>
    */
   boolean containsCredsStore(
       java.lang.String key);
@@ -48,34 +52,34 @@ public interface AppConfigOrBuilder extends
   java.util.Map<java.lang.String, net.nyhm.driveup.proto.CredsData>
   getCredsStore();
   /**
-   * <code>map&lt;string, .net.nyhm.driveup.proto.CredsData&gt; creds_store = 4;</code>
+   * <code>map&lt;string, .net.nyhm.driveup.proto.CredsData&gt; creds_store = 5;</code>
    */
   java.util.Map<java.lang.String, net.nyhm.driveup.proto.CredsData>
   getCredsStoreMap();
   /**
-   * <code>map&lt;string, .net.nyhm.driveup.proto.CredsData&gt; creds_store = 4;</code>
+   * <code>map&lt;string, .net.nyhm.driveup.proto.CredsData&gt; creds_store = 5;</code>
    */
 
   net.nyhm.driveup.proto.CredsData getCredsStoreOrDefault(
       java.lang.String key,
       net.nyhm.driveup.proto.CredsData defaultValue);
   /**
-   * <code>map&lt;string, .net.nyhm.driveup.proto.CredsData&gt; creds_store = 4;</code>
+   * <code>map&lt;string, .net.nyhm.driveup.proto.CredsData&gt; creds_store = 5;</code>
    */
 
   net.nyhm.driveup.proto.CredsData getCredsStoreOrThrow(
       java.lang.String key);
 
   /**
-   * <code>.net.nyhm.driveup.proto.GpgData gpg_data = 5;</code>
+   * <code>.net.nyhm.driveup.proto.GpgData gpg_data = 6;</code>
    */
   boolean hasGpgData();
   /**
-   * <code>.net.nyhm.driveup.proto.GpgData gpg_data = 5;</code>
+   * <code>.net.nyhm.driveup.proto.GpgData gpg_data = 6;</code>
    */
   net.nyhm.driveup.proto.GpgData getGpgData();
   /**
-   * <code>.net.nyhm.driveup.proto.GpgData gpg_data = 5;</code>
+   * <code>.net.nyhm.driveup.proto.GpgData gpg_data = 6;</code>
    */
   net.nyhm.driveup.proto.GpgDataOrBuilder getGpgDataOrBuilder();
 }

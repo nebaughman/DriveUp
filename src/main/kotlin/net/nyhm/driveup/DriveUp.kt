@@ -10,7 +10,9 @@ import com.github.ajalt.clikt.parameters.types.choice
 import com.github.ajalt.clikt.parameters.types.file
 import com.github.ajalt.clikt.parameters.types.int
 import com.google.api.services.drive.DriveScopes
+import com.google.protobuf.ByteString
 import com.google.protobuf.util.JsonFormat
+import net.nyhm.driveup.proto.Access
 import net.nyhm.driveup.proto.AppConfig
 import java.io.*
 import java.util.zip.GZIPInputStream
@@ -28,17 +30,19 @@ fun main(args: Array<String>) = DriveUp()
       Init(), Json(), ListRemote(), Upload()
     ).main(args)
 
-// TODO: Migrate this into creds.proto AppConfig (needed after init?)
-enum class Access(val scope: String) {
-  FULL(DriveScopes.DRIVE),
-  PATH(DriveScopes.DRIVE_FILE),
-  READ(DriveScopes.DRIVE_READONLY)
-}
+/**
+ * Map of [Access] values to [DriveScopes]
+ */
+val Scopes = mapOf(
+  Access.READ to DriveScopes.DRIVE_READONLY,
+  Access.PATH to DriveScopes.DRIVE_FILE,
+  Access.FULL to DriveScopes.DRIVE
+)
 
 const val CONFIG_VERSION = 1
 
 class Init: CliktCommand(
-    help = "Init DriveUp connection"
+    help = "Init DriveUp credentials"
 ) {
 
   val appName by option(
@@ -83,21 +87,23 @@ class Init: CliktCommand(
       help = "Drive access level"
   ).choice(
       Access.values().associateBy { it.name.toLowerCase() }
-  ).default(Access.PATH)
+  ).required() // .default(Access.PATH)
 
   val output by option(
-      "--output", "-o",
+      "--output",
       help = "Save config to this file"
   ).file(
       exists = false,
-      writable = true
+      writable = true,
+      folderOkay = false,
+      fileOkay = true
   ).default(
       File("driveup.creds")
   )
 
   val overwrite by option(
       "--overwrite",
-      help = "Overwrite any existing output file"
+      help = "Overwrite existing output file"
   ).flag(
       default = false
   )
@@ -131,7 +137,7 @@ class Init: CliktCommand(
           appName,
           secrets,
           credsStore,
-          listOf(access.scope) // TODO: Save Access enum in AppConfig
+          listOf(Scopes[access]!!)
       )
 
       driver.remoteDirs()
@@ -151,7 +157,8 @@ class Init: CliktCommand(
     val config = AppConfig.newBuilder()
         .setVersion(CONFIG_VERSION)
         .setAppName(appName)
-        .setClientSecrets(clientSecret.readText())
+        .setAccess(access)
+        .setClientSecrets(ByteString.copyFrom(clientSecret.readBytes()))
         .putAllCredsStore(credsStore)
         .setGpgData(gpgData)
         .build()
@@ -211,15 +218,25 @@ class ListRemote: CliktCommand(
     help = "List remote files (that are accessible to credentials)"
 ) {
 
-  private val config: AppConfig by requireObject()
+  private val config by requireObject<AppConfig>()
+
+  // TODO: api v3 has no maxResultSize;
+  // limit manually by setting reasonable page size, iterate until limit reached;
+  // however, limit is not very useful without order by and offset
+  /*
+  val limit by option(
+      "--limit",
+      help = "Maximum number of results"
+  ).int()
+  */
 
   override fun run() {
 
     val driver = GDriver(
         config.appName,
-        GDriver.readSecrets(config.clientSecrets),
+        GDriver.readSecrets(config.clientSecrets.toByteArray()),
         CredsStoreFactory(config.credsStoreMap),
-        listOf(DriveScopes.DRIVE_READONLY)
+        listOf(Scopes[config.access]!!)
     )
 
     driver.remoteFiles().forEach {
@@ -294,7 +311,7 @@ class Upload: CliktCommand(
 
     val driver = GDriver(
         config.appName,
-        GDriver.readSecrets(config.clientSecrets),
+        GDriver.readSecrets(config.clientSecrets.toByteArray()),
         CredsStoreFactory(config.credsStoreMap),
         listOf(DriveScopes.DRIVE_FILE)
     )
