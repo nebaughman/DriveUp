@@ -239,9 +239,16 @@ class ListRemote: CliktCommand(
         listOf(Scopes[config.access]!!)
     )
 
-    driver.remoteFiles().forEach {
-      echo(it.name)
-    }
+    // search for _all_ dirs (brute force)
+    val dirs = driver
+        .remoteSearch(GdQueryBuilder().isDir())
+        .associate { it.id to it.name }
+
+    // search for all files
+    driver.remoteFiles().map {
+      val parent = dirs[it.parents[0]] // TODO: More robust & build full path
+      arrayOf(parent, it.name).joinToString("/", ".../")
+    }.sorted().forEach { echo(it) }
   }
 }
 

@@ -72,9 +72,6 @@ class GDriver(
    * @throws IOException If there is no client_secret.
    */
   private fun getCredentials(httpTransport: NetHttpTransport): Credential {
-    // Load client secrets.
-
-
     // Build flow and trigger user authorization request.
     val flow = GoogleAuthorizationCodeFlow.Builder(
         httpTransport, jsonFactory, clientSecrets, scopes)
@@ -126,7 +123,7 @@ class GDriver(
       val request = service.files().list()
           //.setPageSize(10)
           .setPageToken(pageToken)
-          .setFields("nextPageToken, files(id, name, size, mimeType)") // kind
+          .setFields("nextPageToken, files(id, name, size, mimeType, parents)") // kind
           .setQ(query.build())
       val result = request.execute()
       val batch = result.files
