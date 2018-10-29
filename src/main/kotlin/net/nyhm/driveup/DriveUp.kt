@@ -1,9 +1,6 @@
 package net.nyhm.driveup
 
-import com.github.ajalt.clikt.core.CliktCommand
-import com.github.ajalt.clikt.core.PrintMessage
-import com.github.ajalt.clikt.core.requireObject
-import com.github.ajalt.clikt.core.subcommands
+import com.github.ajalt.clikt.core.*
 import com.github.ajalt.clikt.output.TermUi.echo
 import com.github.ajalt.clikt.parameters.options.*
 import com.github.ajalt.clikt.parameters.types.choice
@@ -89,30 +86,20 @@ class Init: CliktCommand(
       Access.values().associateBy { it.name.toLowerCase() }
   ).required() // .default(Access.PATH)
 
-  val output by option(
-      "--output",
-      help = "Save config to this file"
-  ).file(
-      exists = false,
-      writable = true,
-      folderOkay = false,
-      fileOkay = true
-  ).default(
-      File("driveup.creds")
-  )
-
   val overwrite by option(
       "--overwrite",
-      help = "Overwrite existing output file"
+      help = "Overwrite existing config file"
   ).flag(
       default = false
   )
 
+  val configFile by requireObject<File>()
+
   override fun run() {
 
     // .file(exists = false) means 'do not test for existence'
-    if (output.exists() && !overwrite) {
-      throw PrintMessage("Output file already exists: $output")
+    if (configFile.exists() && !overwrite) {
+      throw PrintMessage("Output file already exists: $configFile")
     }
 
     val gpgData = try {
@@ -163,20 +150,9 @@ class Init: CliktCommand(
         .setGpgData(gpgData)
         .build()
 
-    BufferedOutputStream(GZIPOutputStream(FileOutputStream(output))).use { out ->
+    BufferedOutputStream(GZIPOutputStream(FileOutputStream(configFile))).use { out ->
         config.writeTo(out)
     }
-  }
-}
-
-class Json: CliktCommand(
-    help = "Print a config file as JSON"
-) {
-
-  private val config: AppConfig by requireObject()
-
-  override fun run() {
-    echo(JsonFormat.printer().print(config))
   }
 }
 
@@ -193,23 +169,35 @@ class DriveUp: CliktCommand(
       "--config",
       help = "Path to credentials file (created with init)"
   ).file(
-      exists = true,
       fileOkay = true,
-      folderOkay = false,
-      readable = true
+      folderOkay = false
   ).default(
       File("driveup.creds")
   )
 
   override fun run() {
     // init creates config (other commands need it)
-    if (context.invokedSubcommand !is Init) {
-      // provide Config to subcommands
+    if (context.invokedSubcommand is Init) {
+      context.obj = configFile
+    } else if (!configFile.exists()) { // must exist for other subcommands
+      throw PrintMessage("Config file does not exist: $configFile")
+    } else {
       context.obj = AppConfig
           .newBuilder()
           .mergeFrom(GZIPInputStream(FileInputStream(configFile)))
           .build()
     }
+  }
+}
+
+class Json: CliktCommand(
+    help = "Print a config file as JSON"
+) {
+
+  private val config: AppConfig by requireObject()
+
+  override fun run() {
+    echo(JsonFormat.printer().print(config))
   }
 }
 

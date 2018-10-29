@@ -15,12 +15,12 @@ class TestDriveUp {
   @Test
   fun testInit() {
     main(arrayOf(
+        "--config=local/test.creds",
         "init",
         "--client-secret=local/creds/client_secret.json",
         "--public-key=local/creds/public_key.asc",
         "--encryption-recipient=test@example.com",
         "--access=path",
-        "--output=local/test.creds",
         "--overwrite"
     ))
     testJson()
