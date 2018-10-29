@@ -52,3 +52,9 @@ task createProperties(dependsOn: processResources) {
 classes {
     dependsOn createProperties
 }
+
+sourceSets {
+    main.java.srcDirs = ['src/main/kotlin']
+    //main.kotlin.srcDirs = ['src/main/kotlin']
+    //main.resources.srcDirs = ['src/main/resources']
+}
