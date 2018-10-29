@@ -319,6 +319,7 @@ class Upload: CliktCommand(
 
     val uploadPath = listOf(remoteRoot, localChild)
 
+    echo("Fetching remote file list...")
     val remote = Remote.create(
         driver,
         encryptor,
@@ -337,22 +338,22 @@ class Upload: CliktCommand(
     val remaining = uploader.createBatch() // no limit
     val batch = uploader.createBatch(uploadLimit)
 
-    println("Local path: $sourceDir")
-    println("Local files: ${uploader.localCount} (${uploader.localBytes})")
-    println("Remote path: /${uploadPath.joinToString("/")}")
-    println("Remote files: ${remote.fileCount()} (${remote.totalBytes()})")
-    println("Total remaining: ${remaining.count} (${remaining.bytes})")
-    println("Files to upload: ${batch.count} (${batch.bytes})")
+    echo("Local path: $sourceDir")
+    echo("Local files: ${uploader.localCount} (${uploader.localBytes})")
+    echo("Remote path: /${uploadPath.joinToString("/")}")
+    echo("Remote files: ${remote.fileCount()} (${remote.totalBytes()})")
+    echo("Total remaining: ${remaining.count} (${remaining.bytes})")
+    echo("Files to upload: ${batch.count} (${batch.bytes})")
 
     if (justCheck) { // do not upload
-      println("Exiting dry run")
+      echo("Exiting dry run")
       return
     }
 
     val report = Report(batch) { uploader.createBatch() }
-    val stats = uploader.upload(batch) { println(report.add(it)) }
+    val stats = uploader.upload(batch) { echo(report.add(it)) }
 
-    println("Uploaded ${stats.count} (${stats.bytes}) @ ${stats.mbps} = ${stats.time} | Remaining: ${Report.batchReport(uploader.createBatch(), stats.mbps)}")
+    echo("Uploaded ${stats.count} (${stats.bytes}) @ ${stats.mbps} = ${stats.time} | Remaining: ${Report.batchReport(uploader.createBatch(), stats.mbps)}")
   }
 }
 
