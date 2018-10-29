@@ -4,12 +4,15 @@ import com.google.api.services.drive.DriveScopes
 import org.junit.Test
 import java.io.File
 
+// TODO: Update this test; this no longer works as it did before...
+
 /**
  * These are not unit tests. This represents a sample (test) app using GDriver to
  * interact with a Google Drive account.
  */
 class TestGDriver {
 
+  /*
   companion object {
     private const val UPLOAD_FILE_NAME = "test-upload-file.txt"
     private const val UPLOAD_FILE_PATH = "/$UPLOAD_FILE_NAME"
@@ -17,7 +20,6 @@ class TestGDriver {
     private val UPLOAD_PATH = listOf("test-root", "test-level-1", "test-level-2")
   }
 
-  // TODO: Update this test; this no longer works as it did before...
   private val driver by lazy {
     GDriver(
         "TestApp",
@@ -51,4 +53,5 @@ class TestGDriver {
     //println(driver.findDirectory(UPLOAD_PATH.first()))
     //println(driver.findDirectory(UPLOAD_PATH.first(), "root"))
   }
+  */
 }

@@ -248,37 +248,28 @@ class Upload: CliktCommand(
       help = "Do not use encryption"
   ).flag(default = false)
 
-  val remoteRoot by option(
-      "--remote-root",
-      help = "Remote upload root directory"
+  val remotePath by option(
+      "--remote-path",
+      help = "Remote upload directory ('/' separated path)"
   ).default(
       "DriveUp"
   )
+
+  val localPath by option(
+      "--local-path",
+      help = "Local source directory. Files from here are uploaded into the remote path."
+  ).file(
+      exists = true,
+      fileOkay = false,
+      folderOkay = true,
+      readable = true
+  ).required()
 
   val uploadLimit by option(
       "--upload-limit",
       help = "Max files to upload (0 for no limit)"
   ).int().default(0).validate {
     require(it >= 0) { "Limit must be >= 0" }
-  }
-
-  val localRoot by option(
-      "--local-root",
-      help = "Local source root directory"
-  ).file(
-      exists = true,
-      fileOkay = false,
-      folderOkay = true,
-      writable = false,
-      readable = true
-  ).required()
-
-  val localChild by option(
-      "--local-child",
-      help = "Child directory under local root to upload into remote root"
-  ).required().validate {
-    val file = File(localRoot, it)
-    require(file.exists() && file.isDirectory) { "Invalid child directory" }
   }
 
   val justCheck by option(
@@ -289,7 +280,8 @@ class Upload: CliktCommand(
   val fileExtensions by option(
       "--file-extensions",
       help = "Include files with these extensions " +
-             "(as comma-delimited list, or this option may be given multiple times)"
+             "(as comma-delimited list, or this option may be given multiple times). " +
+             "Include all extensions if none given (the default)."
   ).multiple()
 
   // TODO: recursive
@@ -317,16 +309,14 @@ class Upload: CliktCommand(
       GpgEncryptor(GpgConfig.fromData(config.gpgData))
     }
 
-    val uploadPath = listOf(remoteRoot, localChild)
-
     echo("Fetching remote file list...")
     val remote = Remote.create(
         driver,
         encryptor,
-        uploadPath
+        remotePath.split('/') // TODO: use File & Path (not hard-coded '/')
     )
 
-    val sourceDir = File(localRoot, localChild).toPath()
+    val sourceDir = localPath.toPath()
 
     // build set of acceptable file extensions
     val ext = fileExtensions.flatMap { it.split(",") }.toSet()
@@ -340,7 +330,7 @@ class Upload: CliktCommand(
 
     echo("Local path: $sourceDir")
     echo("Local files: ${uploader.localCount} (${uploader.localBytes})")
-    echo("Remote path: /${uploadPath.joinToString("/")}")
+    echo("Remote path: /${remotePath}")
     echo("Remote files: ${remote.fileCount()} (${remote.totalBytes()})")
     echo("Total remaining: ${remaining.count} (${remaining.bytes})")
     echo("Files to upload: ${batch.count} (${batch.bytes})")

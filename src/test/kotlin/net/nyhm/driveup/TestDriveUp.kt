@@ -1,5 +1,6 @@
 package net.nyhm.driveup
 
+import org.junit.Assert
 import org.junit.Test
 
 /**
@@ -40,5 +41,10 @@ class TestDriveUp {
         "--config=local/test.creds",
         "list"
     ))
+  }
+
+  @Test
+  fun testVersion() {
+    Assert.assertEquals("DEV", Version.version)
   }
 }
