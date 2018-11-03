@@ -5,7 +5,7 @@ plugins {
     id 'org.jetbrains.kotlin.jvm' version '1.2.60'
 }
 
-version '0.2'
+version '0.3'
 
 group 'net.nyhm.driveup'
 sourceCompatibility = 1.8
