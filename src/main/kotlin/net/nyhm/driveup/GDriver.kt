@@ -11,12 +11,10 @@ import com.google.api.client.http.FileContent
 import com.google.api.client.http.InputStreamContent
 import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.json.jackson2.JacksonFactory
-import com.google.api.client.util.store.FileDataStoreFactory
+import com.google.api.client.util.store.DataStoreFactory
 import com.google.api.services.drive.Drive
 import com.google.api.services.drive.model.File
-import java.io.IOException
-import java.io.InputStream
-import java.io.InputStreamReader
+import java.io.*
 
 const val DIR_MIME_TYPE = "application/vnd.google-apps.folder"
 
@@ -31,11 +29,28 @@ const val DIR_MIME_TYPE = "application/vnd.google-apps.folder"
  */
 class GDriver(
     val applicationName: String,
-    val clientSecretFile: java.io.File,
-    val credentialsDirectory: java.io.File,
+    val clientSecrets: GoogleClientSecrets,
+    val dataStoreFactory: DataStoreFactory,
     val scopes: List<String>
 ) {
-  private val jsonFactory: JacksonFactory = JacksonFactory.getDefaultInstance()
+
+  companion object {
+
+    private val jsonFactory: JacksonFactory = JacksonFactory.getDefaultInstance()
+
+    fun readSecrets(file: java.io.File): GoogleClientSecrets {
+      val input = GDriver::class.java.getResourceAsStream(file.absolutePath) ?: file.inputStream()
+      return GoogleClientSecrets.load(jsonFactory, InputStreamReader(input))
+    }
+
+    fun readSecrets(bytes: ByteArray): GoogleClientSecrets {
+      return GoogleClientSecrets.load(jsonFactory, InputStreamReader(ByteArrayInputStream(bytes)))
+    }
+
+    fun readSecrets(json: String): GoogleClientSecrets {
+      return GoogleClientSecrets.load(jsonFactory, StringReader(json))
+    }
+  }
 
   /*
    * Global instance of the scopes required by this quickstart.
@@ -57,15 +72,10 @@ class GDriver(
    * @throws IOException If there is no client_secret.
    */
   private fun getCredentials(httpTransport: NetHttpTransport): Credential {
-    // Load client secrets.
-    val input = GDriver::class.java.getResourceAsStream(clientSecretFile.absolutePath)
-        ?: clientSecretFile.inputStream()
-    val clientSecrets = GoogleClientSecrets.load(jsonFactory, InputStreamReader(input))
-
     // Build flow and trigger user authorization request.
     val flow = GoogleAuthorizationCodeFlow.Builder(
         httpTransport, jsonFactory, clientSecrets, scopes)
-        .setDataStoreFactory(FileDataStoreFactory(credentialsDirectory))
+        .setDataStoreFactory(dataStoreFactory)
         .setAccessType("offline")
         .build()
 
@@ -113,7 +123,7 @@ class GDriver(
       val request = service.files().list()
           //.setPageSize(10)
           .setPageToken(pageToken)
-          .setFields("nextPageToken, files(id, name, size, mimeType)") // kind
+          .setFields("nextPageToken, files(id, name, size, mimeType, parents)") // kind
           .setQ(query.build())
       val result = request.execute()
       val batch = result.files

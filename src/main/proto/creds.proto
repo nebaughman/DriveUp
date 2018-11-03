@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package net.nyhm.driveup.proto;
+
+option java_multiple_files = true;
+
+message AppConfig {
+    int32 version = 1;
+    string app_name = 2;
+    bytes client_secrets = 3;
+    Access access = 4;
+    map<string,CredsData> creds_store = 5;
+    GpgData gpg_data = 6;
+}
+
+enum Access {
+    READ = 0;
+    PATH = 1;
+    FULL = 2;
+}
+
+message CredsData {
+    map<string,bytes> entries = 1;
+}
+
+message GpgData {
+    string recipient = 1;
+    bytes publicKey = 2;
+}

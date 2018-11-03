@@ -2,5 +2,5 @@
 /.gradle/
 /build/
 /out/
-/credentials/
 /local/
+/*.creds

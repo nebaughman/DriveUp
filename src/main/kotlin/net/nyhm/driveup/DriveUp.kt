@@ -1,36 +1,45 @@
 package net.nyhm.driveup
 
-import com.github.ajalt.clikt.core.CliktCommand
-import com.github.ajalt.clikt.core.requireObject
-import com.github.ajalt.clikt.core.subcommands
+import com.github.ajalt.clikt.core.*
 import com.github.ajalt.clikt.output.TermUi.echo
 import com.github.ajalt.clikt.parameters.options.*
+import com.github.ajalt.clikt.parameters.types.choice
 import com.github.ajalt.clikt.parameters.types.file
 import com.github.ajalt.clikt.parameters.types.int
 import com.google.api.services.drive.DriveScopes
-import java.io.File
-import java.io.FileFilter
+import com.google.protobuf.ByteString
+import com.google.protobuf.util.JsonFormat
+import net.nyhm.driveup.proto.Access
+import net.nyhm.driveup.proto.AppConfig
+import java.io.*
+import java.util.zip.GZIPInputStream
+import java.util.zip.GZIPOutputStream
 
-data class Config(
-    val appName: String,
-    val credentialsPath: File,
-    val clientSecret: File
-)
-
+/**
+ * Main entry point
+ */
 fun main(args: Array<String>) = DriveUp()
     .versionOption(
       version = Version.version,
       help = "Show the version and exit",
       message = { "DriveUp v$it" }
     ).subcommands(
-      ListRemote(), Upload()
+      Init(), Json(), ListRemote(), Upload()
     ).main(args)
 
 /**
- * Main command-line executable (application entry point)
+ * Map of [Access] values to [DriveScopes]
  */
-class DriveUp: CliktCommand(
-    help = "Send files to Google Drive"
+val Scopes = mapOf(
+  Access.READ to DriveScopes.DRIVE_READONLY,
+  Access.PATH to DriveScopes.DRIVE_FILE,
+  Access.FULL to DriveScopes.DRIVE
+)
+
+const val CONFIG_VERSION = 1
+
+class Init: CliktCommand(
+    help = "Init DriveUp credentials"
 ) {
 
   val appName by option(
@@ -38,19 +47,6 @@ class DriveUp: CliktCommand(
       help = "Application name (arbitrary)"
   ).default(
       "DriveUp"
-  )
-
-  val credentialsPath by option(
-      "--credentials-path",
-      help = "Path to stored user credentials"
-  ).file(
-      exists = false,
-      fileOkay = false,
-      folderOkay = true,
-      writable = true,
-      readable = true
-  ).default(
-      File("credentials")
   )
 
   val clientSecret by option(
@@ -62,57 +58,10 @@ class DriveUp: CliktCommand(
       folderOkay = false,
       writable = false,
       readable = true
-  ).default(
-      File("credentials","client_secret.json")
-  )
-
-  override fun run() {
-    // provide this to subcommands
-    context.obj = Config(appName, credentialsPath, clientSecret)
-  }
-}
-
-class ListRemote: CliktCommand(
-    name = "list",
-    help = "List remote files (that are accessible to credentials)"
-) {
-
-  val config: Config by requireObject()
-
-  override fun run() {
-
-    val driver = GDriver(
-        config.appName,
-        config.clientSecret,
-        config.credentialsPath,
-        listOf(DriveScopes.DRIVE_FILE)
-    )
-
-    driver.remoteFiles().forEach {
-      echo(it.name)
-    }
-  }
-}
-
-class Upload: CliktCommand(
-    help = "Encrypt and upload files"
-) {
-
-  // TODO: Explicit auth step (not just side-effect of not finding credentials)
-  /*
-  val auth by option(
-      "--auth", "--authenticate",
-      help="Perform OAuth authentication"
-  ).flag(default = false)
-  */
-
-  // TODO: Encryption optional
-  /*
-  val noEncryption by option(
-      "--no-encryption",
-      help = "Do not use encryption"
-  ).flag(default = false)
-  */
+  ).required()
+  /*.default(
+      File("client_secret.json")
+  )*/
 
   val publicKey by option(
       "--public-key",
@@ -123,50 +72,204 @@ class Upload: CliktCommand(
       folderOkay = false,
       writable = false,
       readable = true
-  ).default(
-      File("credentials", "public_key.asc")
-  )
+  ).required() // TODO: allow non-encrypted config
 
   val encryptionRecipient by option(
       "--encryption-recipient",
       help = "GPG/PGP recipient identifier (eg, email address)"
-  )
-  .required() // TODO: only if not justCheck or noEncryption
-  //.validate {
-  //  require(!noEncryption || it.isNotEmpty()) // this does not work
-  //}
+  ).required() // TODO: allow non-encrypted config
 
-  val remoteRoot by option(
-      "--remote-root",
-      help = "Remote upload root directory"
+  val access: Access by option(
+      "--access",
+      help = "Drive access level"
+  ).choice(
+      Access.values().associateBy { it.name.toLowerCase() }
+  ).required() // .default(Access.PATH)
+
+  val overwrite by option(
+      "--overwrite",
+      help = "Overwrite existing config file"
+  ).flag(
+      default = false
+  )
+
+  val configFile by requireObject<File>()
+
+  override fun run() {
+
+    // .file(exists = false) means 'do not test for existence'
+    if (configFile.exists() && !overwrite) {
+      throw PrintMessage("Output file already exists: $configFile")
+    }
+
+    val gpgData = try {
+      val gpgConfig = GpgConfig.fromFile(
+          publicKey.toPath(),
+          encryptionRecipient
+      )
+      GpgEncryptor(gpgConfig).encrypt("Test source".byteInputStream()) // test encryption
+      val data = gpgConfig.export()
+      GpgConfig.fromData(data) // sanity check save/load
+      data
+    } catch (e: Exception) {
+      throw PrintMessage("Encryption config failed") // TODO: be more helpful
+    }
+
+    val credsStore = try {
+
+      val credsStore = CredsStoreFactory() // empty creds store
+      val secrets = GDriver.readSecrets(clientSecret.readText())
+
+      val driver = GDriver(
+          appName,
+          secrets,
+          credsStore,
+          listOf(Scopes[access]!!)
+      )
+
+      driver.remoteDirs()
+      //
+      // TODO: just call something for quicker info (metadata?)
+      // Or, be more comprehensive (create & delete a test path & file), depending on Access level
+
+      val data = credsStore.export()
+      CredsStoreFactory(data) // sanity check save/load
+      data
+    } catch (e: IOException) {
+      var error = e.message ?: "Error accessing Drive"
+      if (error.contains("access_denied")) error = "Access denied to Drive"
+      throw PrintMessage(error)
+    }
+
+    val config = AppConfig.newBuilder()
+        .setVersion(CONFIG_VERSION)
+        .setAppName(appName)
+        .setAccess(access)
+        .setClientSecrets(ByteString.copyFrom(clientSecret.readBytes()))
+        .putAllCredsStore(credsStore)
+        .setGpgData(gpgData)
+        .build()
+
+    BufferedOutputStream(GZIPOutputStream(FileOutputStream(configFile))).use { out ->
+        config.writeTo(out)
+    }
+  }
+}
+
+/**
+ * Parent command, which loads saved config file, unless subcommand is `init`,
+ * which creates the config file.
+ */
+class DriveUp: CliktCommand(
+    help = "Send files to Google Drive"
+) {
+
+  // TODO: Instead of Init --output option, pass this to Init as the output target
+  val configFile by option(
+      "--config",
+      help = "Path to credentials file (created with init)"
+  ).file(
+      fileOkay = true,
+      folderOkay = false
+  ).default(
+      File("driveup.creds")
+  )
+
+  override fun run() {
+    // init creates config (other commands need it)
+    if (context.invokedSubcommand is Init) {
+      context.obj = configFile
+    } else if (!configFile.exists()) { // must exist for other subcommands
+      throw PrintMessage("Config file does not exist: $configFile")
+    } else {
+      context.obj = AppConfig
+          .newBuilder()
+          .mergeFrom(GZIPInputStream(FileInputStream(configFile)))
+          .build()
+    }
+  }
+}
+
+class Json: CliktCommand(
+    help = "Print a config file as JSON"
+) {
+
+  private val config: AppConfig by requireObject()
+
+  override fun run() {
+    echo(JsonFormat.printer().print(config))
+  }
+}
+
+class ListRemote: CliktCommand(
+    name = "list",
+    help = "List remote files (that are accessible to credentials)"
+) {
+
+  private val config by requireObject<AppConfig>()
+
+  // TODO: api v3 has no maxResultSize;
+  // limit manually by setting reasonable page size, iterate until limit reached;
+  // however, limit is not very useful without order by and offset
+  /*
+  val limit by option(
+      "--limit",
+      help = "Maximum number of results"
+  ).int()
+  */
+
+  override fun run() {
+
+    val driver = GDriver(
+        config.appName,
+        GDriver.readSecrets(config.clientSecrets.toByteArray()),
+        CredsStoreFactory(config.credsStoreMap),
+        listOf(Scopes[config.access]!!)
+    )
+
+    // search for _all_ dirs (brute force)
+    val dirs = driver
+        .remoteSearch(GdQueryBuilder().isDir())
+        .associate { it.id to it.name }
+
+    // search for all files
+    driver.remoteFiles().map {
+      val parent = dirs[it.parents[0]] // TODO: More robust & build full path
+      arrayOf(parent, it.name).joinToString("/", ".../")
+    }.sorted().forEach { echo(it) }
+  }
+}
+
+class Upload: CliktCommand(
+    help = "Encrypt and upload files"
+) {
+  val noEncryption by option(
+      "--no-encryption",
+      help = "Do not use encryption"
+  ).flag(default = false)
+
+  val remotePath by option(
+      "--remote-path",
+      help = "Remote upload directory ('/' separated path)"
   ).default(
       "DriveUp"
   )
+
+  val localPath by option(
+      "--local-path",
+      help = "Local source directory. Files from here are uploaded into the remote path."
+  ).file(
+      exists = true,
+      fileOkay = false,
+      folderOkay = true,
+      readable = true
+  ).required()
 
   val uploadLimit by option(
       "--upload-limit",
       help = "Max files to upload (0 for no limit)"
   ).int().default(0).validate {
     require(it >= 0) { "Limit must be >= 0" }
-  }
-
-  val localRoot by option(
-      "--local-root",
-      help = "Local source root directory"
-  ).file(
-      exists = true,
-      fileOkay = false,
-      folderOkay = true,
-      writable = false,
-      readable = true
-  ).required()
-
-  val localChild by option(
-      "--local-child",
-      help = "Child directory under local root to upload into remote root"
-  ).required().validate {
-    val file = File(localRoot, it)
-    require(file.exists() && file.isDirectory) { "Invalid child directory" }
   }
 
   val justCheck by option(
@@ -177,7 +280,8 @@ class Upload: CliktCommand(
   val fileExtensions by option(
       "--file-extensions",
       help = "Include files with these extensions " +
-             "(as comma-delimited list, or this option may be given multiple times)"
+             "(as comma-delimited list, or this option may be given multiple times). " +
+             "Include all extensions if none given (the default)."
   ).multiple()
 
   // TODO: recursive
@@ -188,39 +292,31 @@ class Upload: CliktCommand(
   ).flag(default = false)
   */
 
-  val config: Config by requireObject()
+  private val config: AppConfig by requireObject()
 
   override fun run() {
 
-    /*
-    val encryptor = if (noEncryption) {
-      NonEncryptor
-    } else if (encryptionRecipient == null) {
-      throw MissingParameter("Encryption recipient required")
-    } else {
-      GpgEncryptor(
-          publicKey.toPath(),
-          encryptionRecipient!!
-      )
-    }
-    */
-    val encryptor = GpgEncryptor(
-        publicKey.toPath(),
-        encryptionRecipient
-    )
-
     val driver = GDriver(
         config.appName,
-        config.clientSecret,
-        config.credentialsPath,
+        GDriver.readSecrets(config.clientSecrets.toByteArray()),
+        CredsStoreFactory(config.credsStoreMap),
         listOf(DriveScopes.DRIVE_FILE)
     )
 
-    val uploadPath = listOf(remoteRoot, localChild)
+    val encryptor = if (noEncryption) {
+      NonEncryptor
+    } else {
+      GpgEncryptor(GpgConfig.fromData(config.gpgData))
+    }
 
-    val remote = Remote.create(driver, encryptor, uploadPath)
+    echo("Fetching remote file list...")
+    val remote = Remote.create(
+        driver,
+        encryptor,
+        remotePath.split('/') // TODO: use File & Path (not hard-coded '/')
+    )
 
-    val sourceDir = File(localRoot, localChild).toPath()
+    val sourceDir = localPath.toPath()
 
     // build set of acceptable file extensions
     val ext = fileExtensions.flatMap { it.split(",") }.toSet()
@@ -232,29 +328,29 @@ class Upload: CliktCommand(
     val remaining = uploader.createBatch() // no limit
     val batch = uploader.createBatch(uploadLimit)
 
-    println("Local path: $sourceDir")
-    println("Local files: ${uploader.localCount} (${uploader.localBytes})")
-    println("Remote path: /${uploadPath.joinToString("/")}")
-    println("Remote files: ${remote.fileCount()} (${remote.totalBytes()})")
-    println("Total remaining: ${remaining.count} (${remaining.bytes})")
-    println("Files to upload: ${batch.count} (${batch.bytes})")
+    echo("Local path: $sourceDir")
+    echo("Local files: ${uploader.localCount} (${uploader.localBytes})")
+    echo("Remote path: /${remotePath}")
+    echo("Remote files: ${remote.fileCount()} (${remote.totalBytes()})")
+    echo("Total remaining: ${remaining.count} (${remaining.bytes})")
+    echo("Files to upload: ${batch.count} (${batch.bytes})")
 
     if (justCheck) { // do not upload
-      println("Exiting dry run")
+      echo("Exiting dry run")
       return
     }
 
     val report = Report(batch) { uploader.createBatch() }
-    val stats = uploader.upload(batch) { println(report.add(it)) }
+    val stats = uploader.upload(batch) { echo(report.add(it)) }
 
-    println("Uploaded ${stats.count} (${stats.bytes}) @ ${stats.mbps} = ${stats.time} | Remaining: ${Report.batchReport(uploader.createBatch(), stats.mbps)}")
+    echo("Uploaded ${stats.count} (${stats.bytes}) @ ${stats.mbps} = ${stats.time} | Remaining: ${Report.batchReport(uploader.createBatch(), stats.mbps)}")
   }
 }
 
 /**
  * Helper to report ongoing upload stats
  */
-class Report(
+private class Report(
     val batch: UploadBatch,
     val totalRemaining: () -> UploadBatch
 ) {
