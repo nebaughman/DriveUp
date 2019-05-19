@@ -6,6 +6,7 @@ import com.github.ajalt.clikt.parameters.options.*
 import com.github.ajalt.clikt.parameters.types.choice
 import com.github.ajalt.clikt.parameters.types.file
 import com.github.ajalt.clikt.parameters.types.int
+import com.github.ajalt.clikt.parameters.types.path
 import com.google.api.services.drive.DriveScopes
 import com.google.protobuf.ByteString
 import com.google.protobuf.util.JsonFormat
@@ -112,7 +113,7 @@ class Init: CliktCommand(
       GpgConfig.fromData(data) // sanity check save/load
       data
     } catch (e: Exception) {
-      throw PrintMessage("Encryption config failed") // TODO: be more helpful
+      throw PrintMessage("Encryption config failed: ${e.message}") // TODO: be more helpful
     }
 
     val credsStore = try {
@@ -191,7 +192,7 @@ class DriveUp: CliktCommand(
 }
 
 class Json: CliktCommand(
-    help = "Print a config file as JSON"
+    help = "Print a config file as JSON (for development, likely to change)"
 ) {
 
   private val config: AppConfig by requireObject()
@@ -232,10 +233,18 @@ class ListRemote: CliktCommand(
         .remoteSearch(GdQueryBuilder().isDir())
         .associate { it.id to it.name }
 
+    println(dirs)
+
+    // TODO: More robust & build full tree
+    //
     // search for all files
     driver.remoteFiles().map {
-      val parent = dirs[it.parents[0]] // TODO: More robust & build full path
-      arrayOf(parent, it.name).joinToString("/", ".../")
+      if (it.parents == null) {
+        ".../${it.name}"
+      } else {
+        val parent = dirs[it.parents[0]]
+        arrayOf(parent, it.name).joinToString("/", ".../")
+      }
     }.sorted().forEach { echo(it) }
   }
 }
@@ -257,10 +266,10 @@ class Upload: CliktCommand(
 
   val localPath by option(
       "--local-path",
-      help = "Local source directory. Files from here are uploaded into the remote path."
-  ).file(
+      help = "Local source directory or file"
+  ).path(
       exists = true,
-      fileOkay = false,
+      fileOkay = true,
       folderOkay = true,
       readable = true
   ).required()
@@ -316,19 +325,17 @@ class Upload: CliktCommand(
         remotePath.split('/') // TODO: use File & Path (not hard-coded '/')
     )
 
-    val sourceDir = localPath.toPath()
-
     // build set of acceptable file extensions
     val ext = fileExtensions.flatMap { it.split(",") }.toSet()
 
     // filter to specified extensions (or any file if none given)
     val filter = FileFilter { ext.isEmpty() || ext.contains(it.extension) }
 
-    val uploader = Uploader.create(sourceDir, remote, filter)
+    val uploader = Uploader.create(localPath, remote, filter)
     val remaining = uploader.createBatch() // no limit
     val batch = uploader.createBatch(uploadLimit)
 
-    echo("Local path: $sourceDir")
+    echo("Local path: $localPath")
     echo("Local files: ${uploader.localCount} (${uploader.localBytes})")
     echo("Remote path: /${remotePath}")
     echo("Remote files: ${remote.fileCount()} (${remote.totalBytes()})")

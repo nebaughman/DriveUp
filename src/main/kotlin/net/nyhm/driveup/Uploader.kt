@@ -13,18 +13,26 @@ class Uploader private constructor(
     private val localFiles: Set<File>,
     private val remote: Remote
 ) {
-
   companion object {
     fun create(
-        sourceDir: Path,
+        source: Path,
         remote: Remote,
         fileFilter: FileFilter = FileFilter { true }
     ): Uploader {
-      if (!Files.exists(sourceDir)) throw IllegalArgumentException("Source dir does not exist: $sourceDir")
-      val files = sourceDir.toFile().listFiles(FileFilter {
-        it.isFile && fileFilter.accept(it)
-      })
-      val localFiles = TreeSet(files.toList())
+      if (!Files.exists(source)) {
+        throw IllegalArgumentException("Source does not exist: $source")
+      }
+      // source may be a single file or a directory
+      val sourceFile = source.toFile()
+      val files: Array<File> = if (Files.isRegularFile(source)) {
+        if (fileFilter.accept(sourceFile)) arrayOf(sourceFile)
+        else emptyArray()
+      } else {
+        sourceFile.listFiles(FileFilter {
+          it.isFile && fileFilter.accept(it)
+        })
+      }
+      val localFiles = TreeSet(files.toList()).toSet()
       return Uploader(localFiles, remote)
     }
   }
