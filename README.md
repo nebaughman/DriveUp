@@ -34,7 +34,7 @@ DriveUp can be initialized with full, path-based, or read-only access to Drive. 
 
 Access rights are configured during credentials initialization and summarised during the Google OAuth authentication process. These access rights are part of the credentials file created during initialization.
 
-> More testing/documentation of Drive access and security is needed here, but 
+> More testing/documentation of Drive access and security is needed.
 
 ### File Encryption
 
@@ -128,7 +128,7 @@ Notice that source files are encrypted prior to upload and given a `.gpg` file e
 * Does not recurse into subdirectories
 * Can limit number of files to send in a batch, but cannot limit maximum amount of data to send (or time to spend, or bandwidth to consume)
 * Does not know how much space you have available in Google Drive (cannot warn you if your drive is full or has insufficient space for requested files)
-* Remote files checked by name only (cannot detect files with changed local content; would need a manifest file with local hashes, ala duplicity)
+* Remote files checked by name only (cannot detect files with changed local content)
 * Stored file names are not obscured/encrypted (because this is how DriveUp identifies files)
 * Cannot (yet) upload without encryption
 
