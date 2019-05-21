@@ -33,6 +33,7 @@ internal class CredsStoreFactory(data: Map<String,CredsData> = emptyMap()): Data
   // TODO: implementation should be thread safe, per DataStoreFactory contract
   override fun <V:Serializable> getDataStore(id: String): DataStore<V> {
     if (!stores.containsKey(id)) stores[id] = CredsStore<V>(id, this)
+    @Suppress("UNCHECKED_CAST")
     return stores[id] as DataStore<V>
   }
 }
@@ -48,6 +49,7 @@ private class CredsStore<V:Serializable>(
       val store = CredsStore<V>(storeId, factory)
       for ((key,bytes) in data.entriesMap) {
         store.data[key] = ObjectInputStream(ByteArrayInputStream(bytes.toByteArray())).use {
+          @Suppress("UNCHECKED_CAST")
           it.readObject() as V
         }
       }

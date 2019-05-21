@@ -130,7 +130,6 @@ Notice that source files are encrypted prior to upload and given a `.gpg` file e
 * Does not know how much space you have available in Google Drive (cannot warn you if your drive is full or has insufficient space for requested files)
 * Remote files checked by name only (cannot detect files with changed local content)
 * Stored file names are not obscured/encrypted (because this is how DriveUp identifies files)
-* Cannot (yet) upload without encryption
 
 ## Technical
 
@@ -141,6 +140,7 @@ Notice that source files are encrypted prior to upload and given a `.gpg` file e
 * Uses [Clikt](https://ajalt.github.io/clikt/) command-line parsing library
 * The project is built with the [Gradle](https://gradle.org/) build tool
 * Code is maintained with [Git](https://git-scm.com/) revision control system
+* Development process inspired by [nvie's git workflow](https://nvie.com/posts/a-successful-git-branching-model/)
 * Git repository hosted by [GitHub](https://github.com/)
 
 > I use the [IntelliJ IDEA](https://www.jetbrains.com/idea/) (Community Edition) development environment
@@ -149,7 +149,9 @@ Notice that source files are encrypted prior to upload and given a `.gpg` file e
 
 Gradle is used to build the project, but if the [Protocol Buffers](https://developers.google.com/protocol-buffers/) `creds.proto` file is changed, you must manually run `protoc`:
 
+```
 > protoc --proto_path=src/main/proto/ --java_out=src/main/kotlin src/main/proto/*.proto
+```
 
 > TODO: Use the [Protocol Buffer Gradle Plugin](https://github.com/google/protobuf-gradle-plugin) to make protobuf compiling part of the gradle build process.
 
@@ -162,6 +164,12 @@ While uploading a batch of files, a `java.net.SocketTimeoutException` was thrown
 In this particular case, DriveUp could be run again, and resumed where it left off with no further error recovery needed.
 
 Speculatively, the Google Drive API/SDK will discard any failed partial upload (eg, rather than including the partial file in your Drive).
+
+## Development
+
+Development process is inspired by [nvie's git workflow](https://nvie.com/posts/a-successful-git-branching-model/). Ongoing development work is committed to the `develop` branch. Releases are committed and tagged in the `master` branch. Other working branches (feature, release, hotfix) are not typically pushed to origin.
+
+> nvie's `--no-ff` policy is not strictly followed
 
 ## License
 
