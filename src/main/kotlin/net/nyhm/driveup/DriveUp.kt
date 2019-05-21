@@ -125,7 +125,7 @@ class Init: CliktCommand(
           appName,
           secrets,
           credsStore,
-          listOf(Scopes[access]!!)
+          listOf(Scopes.getValue(access))
       )
 
       driver.remoteDirs()
@@ -291,7 +291,7 @@ class Upload: CliktCommand(
       help = "Include files with these extensions " +
              "(as comma-delimited list, or this option may be given multiple times). " +
              "Include all extensions if none given (the default)."
-  ).multiple()
+  ).split(",").multiple()
 
   // TODO: recursive
   /*
@@ -326,7 +326,7 @@ class Upload: CliktCommand(
     )
 
     // build set of acceptable file extensions
-    val ext = fileExtensions.flatMap { it.split(",") }.toSet()
+    val ext = fileExtensions.flatten().toSet()
 
     // filter to specified extensions (or any file if none given)
     val filter = FileFilter { ext.isEmpty() || ext.contains(it.extension) }
