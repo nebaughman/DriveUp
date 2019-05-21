@@ -265,10 +265,10 @@ class UploadSpecBuilder {
 /**
  * The Google Drive API uses a builder pattern to construct API requests, but a
  * major portion of that is a complex query, which is simply provided as a string.
- * This build attempts to improve the reliability of building these query strings.
+ * This class attempts to improve the reliability of building these query strings.
  *
- * This is far from complete and must be used with care. If built incorrectly,
- * this will result in invalid query strings.
+ * This is far from complete and must be used with care. This can result in invalid
+ * query strings, if built incorrectly.
  */
 class GdQueryBuilder {
 

@@ -225,7 +225,7 @@ class ListRemote: CliktCommand(
         config.appName,
         GDriver.readSecrets(config.clientSecrets.toByteArray()),
         CredsStoreFactory(config.credsStoreMap),
-        listOf(Scopes[config.access]!!)
+        listOf(Scopes.getValue(config.access))
     )
 
     // search for _all_ dirs (brute force)
