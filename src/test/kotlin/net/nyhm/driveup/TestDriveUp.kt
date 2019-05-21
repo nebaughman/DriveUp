@@ -1,12 +1,14 @@
 package net.nyhm.driveup
 
 import org.junit.Assert
+import org.junit.Ignore
 import org.junit.Test
 
 /**
  * These are not proper unit tests.
  * These are just a convenient way to test drive functionality.
  */
+@Ignore
 class TestDriveUp {
   @Test
   fun testMain() {
@@ -19,7 +21,7 @@ class TestDriveUp {
         "--config=local/test.creds",
         "init",
         "--client-secret=local/creds/client_secret.json",
-        "--public-key=local/creds/public_key.asc",
+        "--public-key=local/creds/test_public_key.asc",
         "--encryption-recipient=test@example.com",
         "--access=path",
         "--overwrite"
